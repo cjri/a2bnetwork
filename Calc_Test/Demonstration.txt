@@ -1,0 +1,75 @@
+The Calc_Test directory contains files allowing for a test run of the code.  Files are as follows:
+
+Pat_file_test.csv : Contains basic information describing cases of infection, including IDs, sequence names, and dates of onset and sample collection.
+Test_sets.fa : Contains genome sequences corresponding to the individuals in Pat_file_test.
+ward_movement_test.csv : Contains patient movement data, describing which individuals were on certain wards in the hospital and on which dates
+hcw_movement_test.csv : Contains HCW movement data, describing the locations of wards on which indiviudals worked shifts
+
+Calculations may be run in a series of steps:
+
+Step 1:
+
+../NewEpiCode/run_basic --pat_file Pat_file_test.csv --ali_file Test_seqs.fa --ward_file ward_movement_test.csv --mov_file hcw_movement_test.csv --calculation 1 > Run1.out
+
+This calculation identifies a list of plausible transmission networks connecting the individuals.  The output files are: 
+
+Checkpoint1.out: This contains information for the read in of checkpointing information
+
+Check1_0_0.out: This contains the checkpoint information describing the plausible networks.  Briefly the numbers describe potential transmission events, constraints on their timings, and information describing constraints in the ordering of these events.
+
+Run1.out: This contains various output from the code.  Examining the output it is possible to find a list of plausible transmission networks, listed beginning with the following lines:
+
+Individuals
+0 1 2 3 4 5
+0 5 0-1, 0-2, 0-3, 0-4, 0-5,
+0 5 0-1, 0-2, 0-3, 0-4, 1-5,
+0 5 0-1, 0-2, 0-3, 0-4, 2-5,
+
+Here, the first network is one in which individual 0 infects all of the individuals {1, 2, 3, 4, 5}.
+
+Step 2:
+
+../NewEpiCode/run_basic --pat_file Pat_file_test.csv --ali_file Test_seqs.fa --ward_file ward_movement_test.csv --mov_file hcw_movement_test.csv --calculation 2 > Run2.out
+
+This calculation identifies the plausible orderings in which the events in each transmission network can occur.  The outputs are:
+
+Check2_0_0.out: This contains checkpoint information describing the plausible networks and their orderings.  A numerical code is used to designate orderings of transmission events.
+
+Run2.out: This contains various output from the code.
+
+Step 3:
+
+../NewEpiCode/run_basic --pat_file Pat_file_test.csv --ali_file Test_seqs.fa --ward_file ward_movement_test.csv --mov_file hcw_movement_test.csv --calculation 3 > Run3.out
+
+This calculates likelihoods for all of the plausible ordered networks.  The likelihood provided is the sum of the likelihoods for each order of a network.  The outputs are:
+
+Likelihoods_0_0.out: Contains a list of the likelihoods for each of the networks.  Each network is given an index, followed by a description of the transmission in the network; here A-B indicates that A infected B.
+
+Run3.out: This contains various output from the code.
+
+../NewEpiCode/run_basic --pat_file Pat_file_test.csv --ali_file Test_seqs.fa --ward_file ward_movement_test.csv --mov_file hcw_movement_test.csv --calculation 4 --likelihood_file Likelihoods_0_0
+ut > Run4.out
+
+This compiles the likelihoods into a set of edge occupancies.  These are calculated using the likelihoods calculated for each of the networks described in Likelihoods_0_0.out.  The outputs are:
+
+Edge_occupancies.out: This contains a matrix of numbers, describing the statistical proportion of networks containing each transmission event.  For example, the value at {0,1} describes the proportion of networks which involve transmission from individual 0 to individual 1.
+
+Run4.out: Contains various output from the code.
+
+
+-----Further notes-----
+
+The above calculations run a complete calculation and are designed for a case where this can be done quickly.  In some cases, the likelihood calculation can be computationally costly to perform.  A variety of options and routines allow for this.
+
+Alternative Step 3:
+
+../NewEpiCode/run_basic --pat_file Pat_file_test.csv --ali_file Test_seqs.fa --ward_file ward_movement_test.csv --mov_file hcw_movement_test.csv --calculation 3 --c_start x --c_step y  > Run3.out
+
+This calculates likelihoods for every yth network in the list provided by the checkpoint file from --calculation 2, beginning at network x.
+
+Further calculations that are possible with this code are described in the Instructions.txt.  However, the above set of routines provides a complete analysis of a network for which heavy computation is nr required.
+
+
+
+
+

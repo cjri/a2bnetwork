@@ -1,0 +1,213 @@
+This code calculates likelihood values for reconstructions of SARS-CoV-2 transmission networks between sets of individuals.  It uses material from an earlier software package, A2B-Covid, which calculates the pairwise likelihood of transmission between pairs of individuals.
+
+The code for A2B-Covid is available here: https://github.com/chjackson/a2bcovid.  A2B-Covid is an R package with shiny implementation.
+
+Instructions and notes for this code follow.
+
+Compilation:
+
+The code can be compiled with a simple 'make' command entered from command line.
+
+Input data:
+
+Inputs to the code are specified using command line options.  Some inputs are essential, others are not.
+
+[Essential:]
+
+--pat_file <filename> : Specify the name of a file containing the basic data for each individual.  This should be a comma separated file with data in columns:
+
+1.  Individual ID
+2.  Onset date : The date at which the individual first experienced symptoms.  Date format should be dd/mm/yyyy.
+3.  Onset date source : Equal to 1 if the date of onset is known or 0 (or any other integer) if this date is not known, for example in the case of an individual being asymptomatic.  In the case that this value is 0 the code will assume that the onset date provided is the date at which the individual tested positive. The onset date will then be estimated on this basis, using data collected from Cambridge University hospitals.
+4.  Infection type : Equal to 3 if the individual is a healthcare worker and 0 (or any other integer) if not.
+5.  Sequence ID : A code used to link the individual to genome sequence information
+6.  Date of sample collection : Used in evolutionary calculations.  Date format should be dd/mm/yyyy.
+7.  Sample received date : Currently not used in the calculation
+
+This file is the basic input to the code, specifying the individual cases on whom the program will perform calculations.  Known or estimated dates of infection are required for the calculation of the likelihood of transmission events.
+
+--ali_file <filename> : Specify the name of a file in FASTA format containing genome sequences.  This file must contain all required sequences, specified by the sequence ID in the data of pat_file.
+
+Sequence data is very important to the calcualtion of network likelihoods.  While A2B-Covid has the capability to consider cases for which no sequence data is available, it is here essential.
+
+Note: Individuals in the list with no sequence data can be included in the input file, but will be filtered out of the calculation.
+
+[Optional:]
+
+Data describing the location of individuals can be provided; this constrains the potential in the code for transmission to occur between individuals.  Simply, transmission may only occur if the individuals in question are in the same place on the same day.
+
+There are two formats for specifying data describing individual locations.  This arises from the format in which files were originally provided for the study by Cambridge University Hospitals.  There is some redundancy here: either format may potentially be used to specificy data.  However, ward_file allows for individuals to be in more than one location, while mov_file requires all individuals to be in a single location.  We have left this arrangement in place for the convenience of the user.
+
+--ward_file <filename> : Specify the name of a file containing the location of individuals over time.  This should be a comma separated file.  The format of the file is designed to be compatible with local information on patient movements.  The first line is a header.  Subsequent lines are in columns as follows:
+
+1.  Individual ID (same as for --pat_file)
+2.  Cluster ID e.g. the name of the ward being studied in text format
+3.  Infection type in text format e.g. 'patient' or 'HCW' for health care worker
+4.  Availability of data in text format e.g. 'patient_moves_available'
+5 onwards.  Data of the location of a patient, in sets of three columns.  These specify in turn:
+        i)   The name of the location of the individual e.g. WARD_01.
+        ii)  The start date of the individual being in that location.
+        iii) The end date of the individual being in that location.
+
+Within ward_file, only the first column and columns 5 onwards are read by the code.  Other columns are ignored.
+
+--mov_file <filename> : Data describing when individuals were on the ward in question.  The first line is a header line with column names.  The first two of these are labels, while those from the third column onwards describe dates, specified in dd.mm.yyyy format.  After the first line, the data is specified in columns as follows:
+
+1.  Individual ID (same as for --pat_file)
+2.  Cluster ID e.g. the name of the ward in question
+3 onwards.  Presence/absence data.  A 'Y' indicates that the health care worker was on the ward on the date specified for that column in the first row.  An 'N' indicates that the health care worker was not present on the ward on that date.  Either 'Y' or 'N' should be specified for each date.
+
+Options:
+
+The code has a variety of options related to the calculation of likelihood.  A key parameter is the --calculation tool, which specifies which of a range of potential calculations is performed by the code.  This is described after the other options, below.
+
+--seq_noise <float> : An estimate of the number of mutations separating two genome sequences that arises from sequencing noise.  The estimate specified was estimated from data collected by Cambridge University Hospitals within single hosts, using the criteria that at least 90% of the reported nucleotides were unambiguous.
+
+--evo_rate <float> : An estimate of the rate of evolution of the virus, specified in nucleotide substitutions per locus per year.
+
+--diag <flag> : Binary flag to specify the printing of additional diagnostic input.
+
+Genome sequences which do not pass quality control are not included in the analysis.  This can lead to the omission of individuals from the calculation.  Quality control is determined in terms of two parameters.
+
+--maxn <integer> : Threshold for the maximum number of ambiguous nucleotides at variant sites in the genome.  Sequences with more than this threshold are removed from the analyis.  Default is 10.
+
+--min_qual <float> : Minimum sequence quality measured by the coverage of the genome as a fraction of the entire genome.  Default is 0.8 i.e. at least 80% of sites must be unambiguous.
+
+In the absence of location data, individuals are assigned default probabilities of being in the primary location with a given probability, according to their status as a 'patient' or 'health care worker'.  In non-clinical settings these flags could be adopted to signify other categories of individuals.
+
+--hcw_default <float> : Default probability of a HCW being there on a given day
+
+--pat_default <float> : Default probability of a patient being present on a given day
+
+Running the code:
+
+The basic structure of the calculation involves an initial step, which calculates time-dependent pairwise likelihoods for transmission between pairs of individuals.  The main calculation of the likelihood of networks is then divided into three parts, using checkpointing in between each step.  Further calculations may be performed, allowing multiple explorations of the network likelihood space.
+
+--calculation:  This flag specifies the kind of calculation to be performed.  Options are as described below:
+
+--calculation 1
+
+This calculates a comprehensive list of plausible networks of transmission on the basis of the input data.  After calculating time-dependent pairwise likelihoods, a series of rules are used to construct a list of networks.
+
+The rules used are:
+
+i) The network must be complete i.e. must involve all individuals in the dataset.
+
+ii) The network must be acyclic.
+
+iii) The network must be pairwise likely i.e. all individual transmission events must be 'consistent' with the pairwise likelihood function.
+
+Note: Consistency is here defined in terms of the intrinsic pairwise likelihood function, giving a likelihood threshold such that 95% of transmission events would be expected to achieve this threshold.  Details of this parameter are given in the main text.
+
+iv) The network must be consistent with the genome sequence data.  Assuming that the time for viral adaptation is short, we impose the constraint that any genetic variant that is observed in the population can only be gained once during the process of transmission between individuals, and that once gained, it cannot be lost.  This rules out certain transmission networks. 
+
+Options associated with --calculation 1:
+
+--consistency <integer>  
+
+This allows different thresholds to be applied.  The default value 1 gives a 95% likelihood cutoff.  The value 2 gives a 99% likelihood cutoff, allowing more potential transmission events.
+
+Output: This output a checkpoint file, which forms the input to the next calculation.
+
+--calculation 2
+
+This examines the plausible networks identified in the previous calculation, and calculates the orders in which the transmission events in each network can potentially occur.  A series of rules are used to identify orderings.
+
+The rules used are:
+
+i) Logical ordering.  If A infects B, and B infects C, then the former event must occur before the latter event.  We impose a constraint of at least one day between these events occurring.
+
+ii) Location constraints.  We have previously calculated a time-dependent pairwise likelihood for each transmission event, based upon multiple factors including location data.  For each pair, we have a range of dates upon which the transmission can feasibly occur.  If these ranges are such that one event must occur before another, this imposes an ordering constraint.
+
+iii) The network must be consistent wiht the genome sequence data.  If an individual transmits via a pattern whereby some of those to whom the virus is transmitted have a viral variant, but others do not, in such a way that the variant is gained in the transmitting individual, then the former events must have happened before the latter.
+
+Output: This outputs a checkpoint file, which again forms the input to the next calculation.
+
+--calculation 3
+
+This calculates likelihoods for the potential transmission networks, calculated over all possible sets of the times of transmissions, which are calculated across all of the possible orderings of transmission events.  The main output is a likelihood file e.g. 
+
+Likelihoods_0_0.out: Contains a list of transmission networks and likelihoods
+
+Options associated with --calculation 3
+
+--c_start x [default 0] : This starts the calculation of likelihoods at network x in the list provided in the checkpoint information after calculation 2.
+
+--c_step x [default 1] : This sets the step size in processing the likelihood networks, for example calculating likelihoods for every 10th, 100th, or 1000th network.
+
+These latter two options are designed for the case in which calculation of likelihoods is computationally costly.  A systematic search through network likelihoods can be the first step in calculating a statistical ensemble.  Further details of such calculations are provided below.
+
+--calculation 4
+
+This processes the data in the Likelihoods output, calculating the proportion of networks which contain each potential transmission event.  The key output file is:
+
+Edge_occupancies.out: Matrix of proprotions of networks.  The element (i,j) contains the proportion of networks that contain the transmission event i->j.
+
+An input likelihood file needs to be specified for this to work.  This is done with the flag:
+
+--likelihood_file <file_name>
+
+
+Further calcualtions are designed for the calculation of likelihoods under circumstances where the calculation takes longer to perform.
+
+--calculation 10
+
+This reformats the checkpoint file generated by the --calculation 2 run, generating a series of equivalent files e.g. Check_2_0_0_alt.out
+
+--calculation 11
+
+This reformats the data in the Likelihoods output, reprinting the data in an alternative format.  An input file is specified by the --likelihood_file flag.  The output file is:
+
+Likelihoods_alt.out: This contains the likelihood information in an alternative format.  The format here is that the network is represented by the individual transmitting to each individual in the network, with a -1 indicating the root node.
+
+For example, the network 0->1, 1->2, 1->3, 2->4 would be represented in this notation as:  -1 0 1 1 2
+
+--calculation 12
+
+This is the first in a series of calculations searching a region around a proposed maximum likelihood network.  To maximise efficiency, the code keeps a record of all previous network calculations.  To this extent, some work needs to be done to set up the following:
+
+1. A directory ../Order_data
+
+This contains filtered versions of the checkpoint file from the --calculation 2 run, segregated by the first two numbers to appear in the notation of calculations 10 and 11, not including any =1 value.  For example, a line in the file Check2_8_10_alt.out could begin with the following values:
+
+11 8 -1 10 0 2 1 1 9 2 1 5 1 10 8  
+
+These files can be created manually using grep commands.
+
+2. A directory ../Likelihood_data
+
+This contains results from likelihood calculations for previously considered networks.  Again files are ordered by the first two numbers in the network notation of calculation 11, for example the line:
+
+9 -1 3 5 3 6 1 9 5 1 6 -59.275
+
+would be found in Likelihoods9_3_alt.out.
+
+Note: The script split_likelihoods.sh may be used to generate files in ../Likelihood_data.
+
+This calculation takes as input a file Best_likelihood.out, which is proposed as a best likelihood.  This should be provided in the format of calculation 11, for example:
+
+9 -1 3 5 3 6 1 9 5 1 6 -59.275
+
+Running --calculation 12 reads in the proposed likelihood, then generates all of the networks within one change of the given network.  A single change here implies the breaking of a transmission event, rejoining this event to another individual in the network.  Having identified all of these adjacent networks, the code then searches through the order information contained in the directory ../Order_data to identify the orderings associated with each network, discarding any for which orderings were not found.  It then searches through the likelihood information contained in the directory ../Likelihood_data, identifying any networks for which likelihoods have already been calculated.  Finally, it calculates likelihoods for any of the remaining adjacent networks.
+
+The code requires an input flag:
+
+--n_edges x : This specifies the number of edges in the maximum likelihood network
+
+--calculation 14 
+
+In an extension of --calculation 12, this generates a list of networks adjacent to a maximum likelihood network.  The code is similar to that for --calculation 12, except that:
+
+i) The code allows for multiple adjacency i.e. networks within 2, 3, or more changes from the maximum likelihood network.
+
+ii) The code does not actually calculate likelihoods, simply outputting a list of networks in the format of --calculation 11.  These are outputted in the file TransmissionSets.in
+
+Again the code checks the existence of orderings of networks, using data in ../Order_data, and excludes any likelihoods already calculated and listed in ../Likelihood_data.
+
+The calculation of likelihood is performed by a subsequent calculation step.
+
+--calculation 15
+
+Reads in a list of networks, specified in the file TransmissionSets.in, potentially generated by --calculation 14.
+
+Given this list of networks, the program calculates and outputs a likelihood for each network.  The ordering information in the directory ../Order_data is used in this calculation.
