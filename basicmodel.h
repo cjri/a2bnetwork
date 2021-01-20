@@ -35,6 +35,7 @@ struct run_params {
 	string mov_file;	//Name of file with HCW movement data
 	string ward_file;	//Name of file with patient movement data
 	string sub_file;	//Name of file with subset data
+    string time_file;    //Name of file with transmission timings data
 	int turner;	//Don't estimate uncertainty in tree
 	int space; //Include spatial data for individuals
 	int read_subs; //Read in subsets - can be used to split the inferred graph if needed

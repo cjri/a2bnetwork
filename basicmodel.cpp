@@ -9,7 +9,7 @@
 using namespace std;
 
 #include "basicmodel.h"
-#include "utilities.h"
+#include "calc_timings.h"
 #include "checkpointing.h"
 #include "convert_checkpoint_alt.h"
 #include "convert_likelihoods_alt.h"
@@ -18,11 +18,12 @@ using namespace std;
 #include "find_adjacent.h"
 #include "find_orders.h"
 #include "find_trans_networks.h"
+#include "io.h"
 #include "likelihoods.h"
 #include "process_likelihoods.h"
-#include "variants.h"
 #include "thresholds.h"
-#include "io.h"
+#include "utilities.h"
+#include "variants.h"
 
 int main(int argc, const char **argv) {
 
@@ -62,6 +63,10 @@ int main(int argc, const char **argv) {
         return 0;
     }
 
+    if (p.calculation==16) {
+        CalculateTimingStats(p);
+        return 0;
+    }
     
     //Main routine starts here
 	
@@ -109,27 +114,35 @@ int main(int argc, const char **argv) {
     if (p.calculation==1) {
         //Find plausible transmission networks and output to checkpoint
         FindPlausibleTransmissionNetworks (p,new_subsets,pdat_sets,like_trans_sets,variants_sets);
+        return 0;
+        
     }
     
     if (p.calculation==2) {
         FindPlausibleOrders();
+        return 0;
     }
     
     if (p.calculation==3) {
+        cout << "Run calculation 3\n";
         FindNetworkLikelihood (p,new_subsets,pdat_sets,like_trans_sets,variants_sets);
+        return 0;
     }
     
     if (p.calculation==4) {
         ProcessLikelihoods(p);
+        return 0;
     }
     
     if (p.calculation==12) {
         AnalyseAdjacent (p,pdat_sets,like_trans_sets,variants_sets);
+        return 0;
     }
         
     
     if (p.calculation==15) {
         CalculateLikelihoodsFromList (p,pdat_sets,like_trans_sets,variants_sets);
+        return 0;
     }
 
     
