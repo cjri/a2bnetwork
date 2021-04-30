@@ -43,7 +43,5 @@ void ReadSeqTimes(vector<pat>& pdat);
 void ReadLocationData (vector<pat>& pdat);
 void ReadCommunityDistances (vector<int>& comm_dist);
 //void WritePairwiseDistances (vector< vector<int> >& seqdists);
-void WriteGraph (vector<vertex> d, int print_index);
-void WriteGreedy (const treedata& t);
 void WriteBestRoot (int index, const vector<treestore>& ts_roots);
 void WriteMLDetails (run_params p, const int index, const vector< vector<int> >& bin, const vector<treestore_plus>& ts_bin, vector<pat>& pdat);
