@@ -30,12 +30,12 @@ struct run_params {
 	int opt_uct;	//Flag to optimise the reconstruction over the unknown times of being symptomatic
 	double rate;	//Substitutions per site per year
 	double seq_noise; //Mean number of errors in sequencing
+	double chat; //Prior probability of co-location
 	string ali_file;	//Name of alignment file
 	string pat_file;	//Name of file with patient data i.e. code, date of symptoms, HCW status, etc.
 	string mov_file;	//Name of file with HCW movement data
 	string ward_file;	//Name of file with patient movement data
 	string sub_file;	//Name of file with subset data
-    string time_file;    //Name of file with transmission timings data
 	int turner;	//Don't estimate uncertainty in tree
 	int space; //Include spatial data for individuals
 	int read_subs; //Read in subsets - can be used to split the inferred graph if needed
@@ -51,13 +51,22 @@ struct run_params {
 	int noseq; //Flag to ignore genome seuqence data
 	int utopia; //Flag to ignore
 	int alt_like; //Flag for alternative likelihood model.  This increases the likelihood of transmission for each additional day of contact
-	int calc_thresholds; //Calculate thresholds of the likelihood function
     int calculation; //Controls what the code does.  1: Go to checkpoint 1. 2: Read from checkpoint 1.
-    
+
+	//Thresholds for pairwise transmission
+	int calc_thresholds; //Flag to calculats thresholds of the likelihood function
+	double t95NS;  //95% threshold, no sequence data
+	double t99NS;  //99% threshold, no sequence data
+	vector< vector<double> > threshold95; //95% thresholds by {D_A,D_B}
+	vector< vector<double> > threshold99; //99% thresholds by {D_A,D_B}
+
+	double hcw_gap; //Proportion of a day added to the end of each hcw
+	
     //1. Find transmission networks
     int specify_set;
     int specify_remove;
     int consistency;
+    int tight; //Flag to use 95% cutoff
 
     //3. Calculate likelihoods
     int c_start;
@@ -67,6 +76,14 @@ struct run_params {
     //4. Process likelihood values
     int n_edges; //Number of edges to read in likelihoods.
     string likelihood_file; //Name of the likelihood output file to process in stage 4
+    
+    //14. Generate adjacent networks
+    int distance; //Maximum distance from original network
+    
+    //16. Process timing data
+    int absolute; //Flag to process absolute times
+    string time_file;    //Name of file with transmission timings data
+
 };
 
 
@@ -102,6 +119,8 @@ struct tprob {
 struct ijlike {
 	double lL_tot;
 	double ns_lL_tot;
+	int da; //Time from symptom to sequence A
+	int db; //Time from symptom to sequence B
 	int min; //Minimum time
 	int max; //Maximum time
 	vector<int> contact_times;
@@ -194,3 +213,9 @@ struct tpairs {  //Possible transmission structure
     vector<int> order_index;  //Index of orders from list
 };
 
+struct tdata {  //Timings data
+    vector<string> edges;
+    vector<int> edge_number;
+    vector<int> times;
+    double L;
+};

@@ -26,7 +26,7 @@ void FindNetworkLikelihood (run_params p, vector< vector<int> >& new_subsets, ve
 void SetupTreeLikelihoodCalculation(run_params p, int set, const vector<int>& new_subset, vector<tpairs>& trans_sets, const vector< vector<pat> >& pdat_sets, const vector< vector< vector<ijlike> > >& like_trans_sets, const vector< vector<sparseseq> >& variants_sets, vector< vector<int> >& orders, vector<pat>& new_pdat, vector< vector<ijlike> >& new_like_trans, vector<sparseseq>& new_variants, vector<varcount>& vc_multi, vector<varcount>& vc_single);
 void EditSharedVariants(const vector<tpairs>& trans_sets, vector<varcount>& vc_multi);
 void MakeOrderFromIndex (int c, const vector< vector<int> >& orders, vector<tpairs>& trans_sets);
-void CalculateOrderLike (run_params p, int c, int o, double& chain_L, vector<tpairs>& trans_sets, const vector<varcount>& vc_multi, const vector<varcount>& vc_single, const vector<pat>& new_pdat, vector< vector<ijlike> >& new_like_trans);
+void CalculateOrderLike (run_params& p, int c, int o, double& chain_L, vector<tpairs>& trans_sets, const vector<varcount>& vc_multi, const vector<varcount>& vc_single, const vector<pat>& new_pdat, vector< vector<ijlike> >& new_like_trans);
 void MakeOrderedPairs (int c, int o, vector<tpairs>& trans_sets);
 void MakeDescendents(int c, const vector<tpairs>& trans_sets, vector< vector<int> >& descendents);
 void MakeBelow (const vector< vector<int> >& descendents, vector< vector< vector<int> > >& below);
@@ -44,7 +44,7 @@ void BranchTwoNodes (int c, int index, const vector<int>& times, const vector< v
 int FindPrevious (int c, int source, int index, const vector<int>& times, const vector<pat>& new_pdat, const vector<tpairs>& trans_sets);
 void AssignMutationsToBranches (const vector<varcount>& vc_multi, const vector<varcount>& vc_single, vector<nbranch>& treespace);
 void FindEquivalentTimes(const vector<int>& times, const vector<int>& min_times, vector<int>& equiv_times);
-void CalculateTreeLikelihood (int c, run_params p, double& order_L, const vector<int>& times, const vector<int>& equiv_times, const vector<nbranch>& treespace, const vector<tpairs>& trans_sets, const vector< vector<ijlike> >& new_like_trans);
+void CalculateTreeLikelihood (int c, run_params& p, double& order_L, const vector<int>& times, const vector<int>& equiv_times, const vector<nbranch>& treespace, const vector<tpairs>& trans_sets, const vector< vector<ijlike> >& new_like_trans);
 void FindNextTimeSet (int c, int o, const run_params& p, int& done, int& up, int& fin, const vector<int>& min_times, const vector<int>& max_times, const vector<int>& orig_times, const vector<tpairs>& trans_sets, const vector< vector<ijlike> >& new_like_trans, vector<int>& times);
 
 

@@ -7,6 +7,9 @@
 
 
 void GetOptions (run_params& p, int argc, const char **argv);
+void GetThresholds (vector< vector<double> >& thresholds95, vector< vector<double> >& thresholds99, double& t95NS, double& t99NS, int& error);
+void GetThresholdsInternal (vector< vector<double> >& thresholds95, vector< vector<double> >& thresholds99, double& t95NS, double& t99NS, int& error);
+
 void SetThreshold (run_params& p);
 //Basic data input
 void ReadPatFromCSV(run_params p, vector<pat>& pdata);
@@ -36,7 +39,7 @@ void ReadSubsets (run_params p, vector< vector<int> >& subsets);
 
 
 
-void EditHCWMovData (vector<pat>& pdat);
+void EditHCWMovData (run_params p, vector<pat>& pdat);
 
 void ReadSymptomData (vector<pat>& pdat);
 void ReadSeqTimes(vector<pat>& pdat);

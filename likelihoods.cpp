@@ -19,6 +19,8 @@ void CalculateTDLikelihoods (run_params p, const vector<pat>& pdat, const vector
 			ijlike lij;
 			lij.lL_tot=0;
 			lij.ns_lL_tot=0;
+			lij.da=pdat[i].time_seq-pdat[i].time_s;
+			lij.db=pdat[j].time_seq-pdat[j].time_s;
 			vector<tprob> contact_times_probs;
 			if (i==j) {
 				lij.lL_tot=-1e10;
@@ -98,7 +100,16 @@ void CalculateTDLikelihoods (run_params p, const vector<pat>& pdat, const vector
 			//cout << "Done p\n";
 			if (p.diagnostic==1) {
                 cout << lij.min << " " << lij.max << " ";
-				cout << lij.lL_tot << " " << lij.ns_lL_tot << "\n";
+				cout << lij.lL_tot << " " << lij.ns_lL_tot << " ";
+                //Assess consistency here...
+                if (lij.lL_tot>p.threshold95[lij.da+10][lij.db+10]) {
+                    cout << "Consistent\n";
+                } else if (lij.lL_tot>p.threshold99[lij.da+10][lij.db+10]) {
+                    cout << "Borderline\n";
+                } else {
+                    cout << "Unlikely\n";
+                }
+                
 			}
 			//cout << "Now j " << j << "\n";
 		}
@@ -276,6 +287,7 @@ void FindLikelihoodSubsetsIJ(run_params p, const vector< vector<ijlike> >& like_
     for (int i=0;i<like_trans.size();i++) {
         range.push_back(i);
     }
+    cout << "Tight " << p.tight << "\n";
     while (range.size()>0) {
         vector<int> sset;
         sset.clear();
@@ -286,15 +298,30 @@ void FindLikelihoodSubsetsIJ(run_params p, const vector< vector<ijlike> >& like_
             add=0;
             for (int i=0;i<ss;i++) {
                 for (int j=0;j<like_trans.size();j++) {
-//                    if (like_trans[sset[i]][j].lL_tot>p.threshold&&like_trans[sset[i]][j].ns_lL_tot>-13.7123) {
-                    if (like_trans[sset[i]][j].lL_tot>p.threshold) {
-                        //cout << "Add " << sset[i] << " " << j << "\n";
-                        sset.push_back(j);
-                    }
-    //                if (like_trans[j][sset[i]].lL_tot>p.threshold&&like_trans[j][sset[i]].ns_lL_tot>-13.7123) {
-                    if (like_trans[j][sset[i]].lL_tot>p.threshold) {
-                        //cout << "Add " << sset[i] << " " << j << "\n";
-                        sset.push_back(j);
+					int da1=like_trans[sset[i]][j].da+10;
+					int db1=like_trans[sset[i]][j].db+10;
+					int da2=like_trans[j][sset[i]].da+10;
+					int db2=like_trans[j][sset[i]].db+10;
+                    //cout << "D " << da1 << " " << db1 << " " << da2 << " " << db2 << "\n";
+					
+                    if (p.tight==1) {
+                        if (like_trans[sset[i]][j].lL_tot>p.threshold95[da1][db1]) {
+                            //cout << "Add " << sset[i] << " " << j << "\n";
+                            sset.push_back(j);
+                        }
+                        if (like_trans[j][sset[i]].lL_tot>p.threshold95[da2][db2]) {
+                            //cout << "Add " << sset[i] << " " << j << "\n";
+                            sset.push_back(j);
+                        }
+                    } else {
+                        if (like_trans[sset[i]][j].lL_tot>p.threshold99[da1][db1]) {
+                            //cout << "Add " << sset[i] << " " << j << "\n";
+                            sset.push_back(j);
+                        }
+                        if (like_trans[j][sset[i]].lL_tot>p.threshold99[da2][db2]) {
+                            //cout << "Add " << sset[i] << " " << j << "\n";
+                            sset.push_back(j);
+                        }
                     }
                 }
             }
@@ -390,7 +417,7 @@ void SetupTreeLikelihoodCalculation(run_params p, int set, const vector<int>& ne
     
     //Edit multi mutations - remove mutations shared by all individuals
     EditSharedVariants(trans_sets,vc_multi);
-    
+
     if (p.diagnostic==1){
         PrintSharedSingleVariants(vc_multi,vc_single);
     }
@@ -417,7 +444,7 @@ void MakeOrderFromIndex (int c, const vector< vector<int> >& orders, vector<tpai
 }
 
 //Loop for single order
-void CalculateOrderLike (run_params p, int c, int o, double& chain_L, vector<tpairs>& trans_sets, const vector<varcount>& vc_multi, const vector<varcount>& vc_single, const vector<pat>& new_pdat, vector< vector<ijlike> >& new_like_trans) {
+void CalculateOrderLike (run_params& p, int c, int o, double& chain_L, vector<tpairs>& trans_sets, const vector<varcount>& vc_multi, const vector<varcount>& vc_single, const vector<pat>& new_pdat, vector< vector<ijlike> >& new_like_trans) {
    // cout << "CalculateOrderLike\n";
     double order_L=0;
     if (p.diagnostic==1) {
@@ -443,11 +470,11 @@ void CalculateOrderLike (run_params p, int c, int o, double& chain_L, vector<tpa
     CheckTimeOrder(c,o,trans_sets,times);
 
     //Print out time boundaries
-    if (p.diagnostic==1) {
-        //PrintTimings(c,trans_sets,new_like_trans);
-        //PrintLikelihoods(c,trans_sets,new_like_trans);
-        //PrintTimes(times);
-    }
+    /*if (p.diagnostic==1) {
+        PrintTimings(c,trans_sets,new_like_trans);
+        PrintLikelihoods(c,trans_sets,new_like_trans);
+        PrintTimes(times);
+    }*/
 
     //Check whether the initial time is feasible
     int feasible=CheckFeasible(times,max_times);
@@ -613,9 +640,30 @@ void GenerateLikelihoodAllTimings (int c, int o, run_params& p, double& order_L,
     while (fin==0) {
         int done=0;
         int up=times.size()-1;
-        if (p.diagnostic==1) {
-            //PrintTransSampleTimes (c,times,new_pdat,trans_sets);
+        if (p.diagnostic==2) {
+            PrintRelativeTTimes(c,o,times,trans_sets);
+/*            for (int i=0;i<trans_sets[c].orders[o].size();i++) {
+                cout << trans_sets[c].ordered_pair[trans_sets[c].orders[o][i]].from << "-" << trans_sets[c].ordered_pair[trans_sets[c].orders[o][i]].to << " ";
+            }
+            cout << "T ";
+            for (int i=0;i<times.size();i++) {
+                cout << times[i]-times[0] << " ";
+            }*/
         }
+        if (p.diagnostic==3) {
+            PrintAbsoluteTTimes (c,o,times,trans_sets);
+            /*for (int i=0;i<trans_sets[c].orders[o].size();i++) {
+                cout << trans_sets[c].ordered_pair[trans_sets[c].orders[o][i]].from << "-" << trans_sets[c].ordered_pair[trans_sets[c].orders[o][i]].to << " ";
+            }
+            cout << "T ";
+            for (int i=0;i<times.size();i++) {
+                cout << times[i] << " ";
+            }*/
+        }
+
+        /*if (p.diagnostic==1) {
+            PrintTransSampleTimes (c,times,new_pdat,trans_sets);
+        }*/
         
         //Construct tree: Find window of time in which mutations affect each set of individuals
         vector<nbranch> treespace;
@@ -886,7 +934,7 @@ void FindEquivalentTimes(const vector<int>& times, const vector<int>& min_times,
     }
 }
 
-void CalculateTreeLikelihood (int c, run_params p, double& order_L, const vector<int>& times, const vector<int>& equiv_times, const vector<nbranch>& treespace, const vector<tpairs>& trans_sets, const vector< vector<ijlike> >& new_like_trans) {
+void CalculateTreeLikelihood (int c, run_params& p, double& order_L, const vector<int>& times, const vector<int>& equiv_times, const vector<nbranch>& treespace, const vector<tpairs>& trans_sets, const vector< vector<ijlike> >& new_like_trans) {
     double L=0;
     //cout << "Time likelihood\n";
     //Likelihoods of transmission times
@@ -907,7 +955,9 @@ void CalculateTreeLikelihood (int c, run_params p, double& order_L, const vector
     }
     //Increment likelihood for this order
     order_L=order_L+exp(L);
-    //cout << "Likelihood " << L << "\n";
+    if (p.diagnostic>=2) {
+        cout << L << "\n";
+    }
     //cout << "Likelihood is now : " << order_L << "\n";
 }
 
@@ -946,7 +996,7 @@ void FindNextTimeSet (int c, int o, const run_params& p, int& done, int& up, int
 
 
 
-
+/*
 
 void Thresholds (run_params p, double L) {
 	if (p.noseq==1) {
@@ -972,5 +1022,5 @@ void Thresholds (run_params p, double L) {
 	if (L<p.threshold) {
 		cout << "* ";
 	}
-}
+}*/
 

@@ -3,7 +3,7 @@ using namespace std;
 #include "checkpointing.h"
 #include "find_trans_networks.h"
 
-void FindPlausibleTransmissionNetworks (run_params p, const vector< vector<int> >& new_subsets, const vector< vector<pat> >& pdat_sets, const vector< vector< vector<ijlike> > >& like_trans_sets, vector< vector<sparseseq> >& variants_sets) {
+void FindPlausibleTransmissionNetworks (run_params& p, const vector< vector<int> >& new_subsets, const vector< vector<pat> >& pdat_sets, const vector< vector< vector<ijlike> > >& like_trans_sets, vector< vector<sparseseq> >& variants_sets) {
     ofstream check_file;
     check_file.open("Checkpoint1.out");
     if (p.specify_set>-1) {
@@ -17,7 +17,7 @@ void FindPlausibleTransmissionNetworks (run_params p, const vector< vector<int> 
     }
 }
 
-void FPTN_Set (run_params p, int set, const vector< vector<int> >& new_subsets, const vector< vector<pat> >& pdat_sets, const vector< vector< vector<ijlike> > >& like_trans_sets, vector< vector<sparseseq> >& variants_sets, ofstream& check_file) {
+void FPTN_Set (run_params& p, int set, const vector< vector<int> >& new_subsets, const vector< vector<pat> >& pdat_sets, const vector< vector< vector<ijlike> > >& like_trans_sets, vector< vector<sparseseq> >& variants_sets, ofstream& check_file) {
     cout << "Set " << set << " of " << pdat_sets.size() << "\n";
     int found_complete=0;
     int remove=0;
@@ -49,66 +49,77 @@ void FPTN_Set (run_params p, int set, const vector< vector<int> >& new_subsets, 
             vector<sparseseq> new_variants;
             SetupParamsSubsetAnalysis (set,new_subset,pdat_sets,like_trans_sets,variants_sets,new_pdat,new_like_trans,new_variants);
             
-            //Which individuals are contained?
-            cout << "Individuals\n";
-            vector<int> indivs;
-            for (int j=0;j<new_subset.size();j++) {
-                indivs.push_back(new_subset[j]);
-                cout << new_subset[j] << " ";
+            cout << "New subsets\n";
+            for (int i=0;i<new_subset.size();i++) {
+                cout << new_subset[i] << " ";
             }
             cout << "\n";
-
-            //Variant information for these individuals...
-            if (p.diagnostic==1) {
-                PrintVariantInformation (new_pdat,new_variants);
-                PrintNLT(new_like_trans);
-            }
             
-            //Find variants that occur more than once
-            vector<varcount> vc_multi;
-            vector<varcount> vc_single;
-            FindSharedVariantsNew(vc_multi,vc_single,new_variants);
-            if (p.diagnostic==1) {
-                cout << "FindSharedVariants\n";
-                for (int j=0;j<vc_multi.size();j++) {
-                    cout << vc_multi[j].locus << vc_multi[j].allele << " ";
-                    for (int k=0;k<vc_multi[j].individual.size();k++) {
-                        cout << vc_multi[j].individual[k] << " ";
-                    }
-                    cout << "\n";
-                }
-                cout << "NonSharedVariants\n";
-                for (int j=0;j<vc_single.size();j++) {
-                    cout << vc_single[j].locus << vc_single[j].allele << " ";
-                    for (int k=0;k<vc_single[j].individual.size();k++) {
-                        cout << vc_single[j].individual[k] << " ";
-                    }
-                    cout << "\n";
-                }
-
-            }
-           // cin.ignore();
-            
-            //Identify all plausible sets of transmissions
-            //cout << "FindTransSets\n";
-            vector<tpairs> trans_sets;
-            FindTransSets(p,indivs,new_like_trans,vc_multi,trans_sets);
-                
-            cout << "TS size " << trans_sets.size() << "\n";
-            if (trans_sets.size()>0) {
+            if (new_subset.size()==1) { //Don't try to generate sets of size 1; just chuck said individual out of reconstruction.
                 found_complete=1;
-                WriteCheckpoint1(set,iset,new_subset,trans_sets);
-                //Write to record of checkpoint files
-                check_file << set << " " << iset << " 0\n";
-                //cout << "Here " << iset << "\n";
-                if (remainders.size()>1) {
-                    //cout << "Remainder " << remainders[iset].size() << "\n";
-                    if (remainders[iset].size()>1) {
-                        //Deal with remainder set
-                        ProcessRemainder(set,iset,p,check_file,remainders,pdat_sets,like_trans_sets,variants_sets);
+            } else {
+                //Which individuals are contained?
+                cout << "Individuals\n";
+                vector<int> indivs;
+                for (int j=0;j<new_subset.size();j++) {
+                    indivs.push_back(new_subset[j]);
+                    cout << new_subset[j] << " ";
+                }
+                cout << "\n";
+
+                //Variant information for these individuals...
+                if (p.diagnostic==1) {
+                    PrintVariantInformation (new_pdat,new_variants);
+                    PrintNLT(new_like_trans);
+                }
+            
+                //Find variants that occur more than once
+                vector<varcount> vc_multi;
+                vector<varcount> vc_single;
+                FindSharedVariantsNew(vc_multi,vc_single,new_variants);
+                if (p.diagnostic==1) {
+                    cout << "FindSharedVariants\n";
+                    for (int j=0;j<vc_multi.size();j++) {
+                        cout << vc_multi[j].locus << vc_multi[j].allele << " ";
+                        for (int k=0;k<vc_multi[j].individual.size();k++) {
+                            cout << vc_multi[j].individual[k] << " ";
+                        }
+                        cout << "\n";
+                    }
+                    cout << "NonSharedVariants\n";
+                    for (int j=0;j<vc_single.size();j++) {
+                        cout << vc_single[j].locus << vc_single[j].allele << " ";
+                        for (int k=0;k<vc_single[j].individual.size();k++) {
+                            cout << vc_single[j].individual[k] << " ";
+                        }
+                        cout << "\n";
+                    }
+
+                }
+                // cin.ignore();
+            
+                //Identify all plausible sets of transmissions
+                cout << "FindTransSets\n";
+                vector<tpairs> trans_sets;
+                FindTransSets(p,indivs,new_like_trans,vc_multi,trans_sets);
+                
+                cout << "TS size " << trans_sets.size() << "\n";
+                if (trans_sets.size()>0) {
+                    found_complete=1;
+                    WriteCheckpoint1(set,iset,new_subset,trans_sets);
+                    //Write to record of checkpoint files
+                    check_file << set << " " << iset << " 0\n";
+                    //cout << "Here " << iset << "\n";
+                    if (remainders.size()>1) {
+                        //cout << "Remainder " << remainders[iset].size() << "\n";
+                        if (remainders[iset].size()>1) {
+                            //Deal with remainder set
+                            ProcessRemainder(set,iset,p,check_file,remainders,pdat_sets,like_trans_sets,variants_sets);
+                        }
                     }
                 }
-            }
+            }// End of reconstruction of subset
+                
         }
         if (p.specify_remove>-1) {
             break;
@@ -356,18 +367,23 @@ void FindSharedVariantsNew(vector<varcount>& vc_multi, vector<varcount>& vc_sing
     }*/
 }
 
-void FindTransSets(run_params p, const vector<int>& indivs, const vector< vector<ijlike> >& new_like_trans, const vector<varcount>& vc_multi, vector<tpairs>& trans_sets) {
+void FindTransSets(run_params& p, const vector<int>& indivs, const vector< vector<ijlike> >& new_like_trans, const vector<varcount>& vc_multi, vector<tpairs>& trans_sets) {
     //Identify all plausible sets of transmissions
+    //cout << "Pairsets\n";
     FindPairSets(p,indivs,new_like_trans,vc_multi,trans_sets);
     //Import timings
+    //cout << "Timings\n";
     ImportTimings(new_like_trans,trans_sets);
     //Identify constraints on the orderings of transmission events in each case from intrinsic events and timings
+    //cout << "Orderings\n";
     FindOrderingConstraints(trans_sets);
     //Check for contradictions in this ordering
+    //cout << "Contra\n";
     CheckOrderingContradictions (trans_sets);
+    //cout << "Done\n";
 }
 
-void FindPairSets (run_params p, const vector<int>& indivs, const vector< vector<ijlike> >& like_trans, const vector<varcount>& vc_multi, vector<tpairs>& trans_sets) {
+void FindPairSets (run_params& p, const vector<int>& indivs, const vector< vector<ijlike> >& like_trans, const vector<varcount>& vc_multi, vector<tpairs>& trans_sets) {
     //cout << "FindPairSets\n";
     for (int i=0;i<indivs.size();i++) {
         //cout << "I= " << i << "\n";
@@ -395,6 +411,7 @@ void FindPairSets (run_params p, const vector<int>& indivs, const vector< vector
             }
         }
         vector<int> index (allsets.size(),0);
+        //cout << allsets.size() << "\n";
         int fin=0;
         while (fin==0) {
             int check_root=1;
@@ -459,16 +476,20 @@ void FindPairSets (run_params p, const vector<int>& indivs, const vector< vector
     }
 }
 
-void CheckLikelihood(int& check_unlike, run_params p, const vector<int>& index, const vector< vector<tpair> >& allsets, const  vector< vector<ijlike> >& like_trans) {
+void CheckLikelihood(int& check_unlike, run_params& p, const vector<int>& index, const vector< vector<tpair> >& allsets, const  vector< vector<ijlike> >& like_trans) {
+    int da=0;
+    int db=0;
     for (int j=0;j<index.size();j++) {
-        if (p.consistency==1) {
-            if (like_trans[allsets[j][index[j]].from][allsets[j][index[j]].to].lL_tot<-8.15176) {
+        da=like_trans[allsets[j][index[j]].from][allsets[j][index[j]].to].da+10;
+        db=like_trans[allsets[j][index[j]].from][allsets[j][index[j]].to].db+10;
+
+        if (p.tight==1) {
+            if (like_trans[allsets[j][index[j]].from][allsets[j][index[j]].to].lL_tot<p.threshold95[da][db]) {
                 check_unlike=0;
                 break;
             }
-        }
-        if (p.consistency==2) {
-            if (like_trans[allsets[j][index[j]].from][allsets[j][index[j]].to].lL_tot<-10.1578) {
+        } else {
+            if (like_trans[allsets[j][index[j]].from][allsets[j][index[j]].to].lL_tot<p.threshold99[da][db]) {
                 check_unlike=0;
                 break;
             }
@@ -798,7 +819,7 @@ void CheckOrderingContradictions (vector<tpairs>& trans_sets) {
     trans_sets=trans_sets_new;
 }
 
-void ProcessRemainder(int set, int iset, run_params p, ofstream& check_file, const vector< vector<int> >& remainders, const vector< vector<pat> >& pdat_sets, const vector< vector< vector<ijlike> > >& like_trans_sets, const vector< vector<sparseseq> >& variants_sets) {
+void ProcessRemainder(int set, int iset, run_params& p, ofstream& check_file, const vector< vector<int> >& remainders, const vector< vector<pat> >& pdat_sets, const vector< vector< vector<ijlike> > >& like_trans_sets, const vector< vector<sparseseq> >& variants_sets) {
     //Set up parameters
     vector<int> new_subset_rem=remainders[iset];
     vector<pat> new_pdat_rem;//Don't actually need this?

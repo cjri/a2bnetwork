@@ -19,7 +19,7 @@ void ListAdjacentK (run_params p, int k) {
         PrintAdjacentNetworks(trans_in);
     }
 
-    //Find all adjacent graphs to these - within 2.  Add to trans_in.
+    //Find all adjacent graphs to these - within k.  Add to trans_in.
     for (int add=2;add<=k;add++) {
         int end=trans_in.size();
         for (int i=1;i<end;i++) {
@@ -247,7 +247,7 @@ void PrintAdjacentNetworks (const vector< vector<int> >& trans_in) {
     }
 }
 
-void RemoveIfLikelihoodKnown (run_params p, vector< vector<int> >& trans_in, vector<double>& like_before, vector< vector<int> >& c_before) {
+void RemoveIfLikelihoodKnown (run_params& p, vector< vector<int> >& trans_in, vector<double>& like_before, vector< vector<int> >& c_before) {
     vector<int> to_rem;
     for (int i=1;i<trans_in.size();i++) {
         int found=0;
@@ -293,7 +293,7 @@ void RemoveIfLikelihoodKnown (run_params p, vector< vector<int> >& trans_in, vec
 
 void FindTransGroup (const vector< vector<int> >& trans_in, vector< vector<int> >& trans_group) {
     //Groups which come from the same ordering file.  Efficient for file read
-    for (int i=1;i<trans_in.size();i++) {
+    for (int i=0;i<trans_in.size();i++) {
         vector<int> tg;
         int found=0;
         for (int j=0;j<trans_group.size();j++) {
@@ -303,8 +303,17 @@ void FindTransGroup (const vector< vector<int> >& trans_in, vector< vector<int> 
             }
         }
         if (found==0) {
-            tg.push_back(trans_in[i][0]);
-            tg.push_back(trans_in[i][2]);
+            int count=0;
+            int j=0;
+            while (count<2) {
+                if (trans_in[i][j]!=-1) {
+                    tg.push_back(trans_in[i][j]);
+                    count++;
+                }
+                j++;
+            }
+          //  tg.push_back(trans_in[i][0]);
+          //  tg.push_back(trans_in[i][2]);
             tg.push_back(i);
             trans_group.push_back(tg);
         }
@@ -426,7 +435,7 @@ void PrintPrevious (ofstream& cp_file, const vector<double>& like_before, const 
 
 
 
-void CalculateLikelihoods (run_params p, ofstream& cp_file, vector<tpairs>& trans_sets, const vector<varcount>& vc_multi, const vector<varcount>& vc_single, const vector<pat>& new_pdat, vector< vector<ijlike> >& new_like_trans, const vector< vector<int> >& orders) {
+void CalculateLikelihoods (run_params& p, ofstream& cp_file, vector<tpairs>& trans_sets, const vector<varcount>& vc_multi, const vector<varcount>& vc_single, const vector<pat>& new_pdat, vector< vector<ijlike> >& new_like_trans, const vector< vector<int> >& orders) {
     for (int c=0;c<trans_sets.size();c++) {
         //Make order c from order index
         MakeOrderFromIndex (c,orders,trans_sets);
@@ -451,7 +460,7 @@ void CalculateLikelihoods (run_params p, ofstream& cp_file, vector<tpairs>& tran
 }
 
 
-void CalculateLikelihoodsFromList (run_params p, const vector< vector<pat> >& pdat_sets, const vector< vector< vector<ijlike> > >& like_trans_sets, const vector< vector<sparseseq> >& variants_sets) {
+void CalculateLikelihoodsFromList (run_params& p, const vector< vector<pat> >& pdat_sets, const vector< vector< vector<ijlike> > >& like_trans_sets, const vector< vector<sparseseq> >& variants_sets) {
     //Calculate likelihood of a list of imported networks.
     vector< vector<int> > trans_in;
     ifstream sets_file;
@@ -469,7 +478,7 @@ void CalculateLikelihoodsFromList (run_params p, const vector< vector<pat> >& pd
         }
         trans_in.push_back(temp);
     }
-
+    cout << "Transmission events\n";
     cout << trans_in.size() << "\n";
     
     for (int i=0;i<trans_in.size();i++) {
@@ -483,7 +492,6 @@ void CalculateLikelihoodsFromList (run_params p, const vector< vector<pat> >& pd
     vector<tpairs> trans_sets;
     vector<int> new_subset;
     ReadOrders(trans_in,trans_group,trans_sets,new_subset);
-
     
     //Other prep for running calculation
     vector< vector<int> > orders;

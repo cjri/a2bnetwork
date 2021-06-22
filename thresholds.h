@@ -31,8 +31,9 @@ struct cstat {
 	double L;
 };
 
-void CalculateThresholdsNoSeq (run_params p);
-void CalculateThresholdsFull (run_params p);
-void ReCalculateThresholds (run_params p);
+void CalculateThresholdsNoSeq (run_params p, const vector<double>& OGPreCalcP, const vector<double>& LNPreCalc);
+vector<double> CalculateThresholdsNSSpecific (run_params p, const vector<double>& OGPreCalcP, const vector<double>& LNPreCalc);
+void CalculateThresholdsFullExplicit (run_params p, const vector<double>& OGPreCalcP, const vector<double>& LNPreCalc, gsl_rng *rgen);
+vector<double> CalculateThresholdsSpecificDExplicit (run_params p, int d1, int d2d, const vector<double>& OGPreCalcP, const vector<double>& LNPreCalc, gsl_rng *rgen);
 
 

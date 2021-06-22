@@ -22,6 +22,7 @@ using namespace std;
 #include "likelihoods.h"
 #include "process_likelihoods.h"
 #include "thresholds.h"
+#include "threshold_data.h"
 #include "utilities.h"
 #include "variants.h"
 
@@ -37,11 +38,6 @@ int main(int argc, const char **argv) {
 	run_params p;
 	GetOptions(p,argc,argv);
 
-	if (p.calc_thresholds==1) {
-		CalculateThresholdsNoSeq(p);
-		CalculateThresholdsFull(p);
-		return 0;
-	}
     //Next step: Some calculations don't require read-in of the original data
     
     if (p.calculation==10) {
@@ -59,16 +55,36 @@ int main(int argc, const char **argv) {
     //Generate a list of adjacent networks, currently within two of the maximum
     //Exclude from the list 1.  Sites with likelihoods already counted.  2.  Sites with no orders
     if (p.calculation==14) {
-        ListAdjacentK (p,3);
+        ListAdjacentK (p,p.distance);
         return 0;
     }
 
     if (p.calculation==16) {
+		//Generate statistics detailing the timing of each transmission
         CalculateTimingStats(p);
         return 0;
     }
     
     //Main routine starts here
+	
+	//Flag to calculate thresholds for pairwise calculation
+	if (p.calc_thresholds==1) {
+		//Pre-calculate likelihoods: Speed up calculation
+		vector<double> LNPreCalc; //LogNormal.  Assumes p.smu, p.ssigma parameters
+		vector<double> OGPreCalcP; //Offset gamma
+		PreCalculateLikelihoods(p,LNPreCalc,OGPreCalcP);
+		CalculateThresholdsNoSeq(p,OGPreCalcP,LNPreCalc);
+		CalculateThresholdsFullExplicit(p,OGPreCalcP,LNPreCalc,rgen);
+		return 0;
+	}
+
+	int error=0;
+	//External files required to set thresholds for pairwise calculation
+	//If these are lost, they can be re-generated using the --calc_thresholds 1 flag
+	GetThresholdsInternal (p.threshold95,p.threshold99,p.t95NS,p.t99NS,error);
+	if (error==1) {
+		return 0;
+	}
 	
 	//Read in basic information from pat_file
 	vector<pat> pdat;
@@ -101,9 +117,11 @@ int main(int argc, const char **argv) {
 	CalculateTDLikelihoods (p,pdat,seqdists,seqdists_c,like_trans);
 	
 	//Find clusters of individuals
+	cout << "Get subsets\n";
 	vector< vector<int> > subsets;
 	GetSubsetsIJ (p,like_trans,pdat,subsets);
-    
+	cout << "Here\n";
+	
     //Gather data for calculation
     vector< vector<int> > new_subsets;
 	vector< vector<pat> > pdat_sets;

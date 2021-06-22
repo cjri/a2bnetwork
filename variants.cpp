@@ -125,17 +125,20 @@ void ListAllVariantPositions (const vector<sparseseq>& variants, vector<allele>&
 void FindAmbiguousVarPositions (const vector<allele>& allvar, vector<pat>& pdat, vector<int>& nloci, vector<int>& nloc_count) {
     //Variant positions for which at least one sequence has an N
     for (int i=0;i<pdat.size();i++) {
+		cout << pdat[i].code << " ";
         int nc=0;
         for (int j=0;j<allvar.size();j++) {
             if (pdat[i].seq.compare(allvar[j].loc,1,"N")==0) {
                 idat id;
                 id.loc=allvar[j].loc;
                 id.q=0;
+				cout << allvar[j].loc << " ";
                 pdat[i].seq_uncertainty.push_back(id);
                 nc++;
                 nloci.push_back(allvar[j].loc);
             }
         }
+		cout << "\n";
         nloc_count.push_back(nc);
     }
     sort(nloci.begin(),nloci.end());
@@ -260,6 +263,12 @@ void RemoveIndividualsMultipleN (const run_params p, vector<int>& nloc_count, ve
             rem.push_back(i);
         }
     }
+	if (p.diagnostic==1) {
+		cout << "Variants with N:\n";
+		for (int i=0;i<pdat.size();i++) {
+			cout << pdat[i].code << " " << nloc_count[i] << "\n";
+		}
+	}
     for (int i=0;i<rem.size();i++) {
         pdat.erase(pdat.begin()+rem[i]);
         variants.erase(variants.begin()+rem[i]);

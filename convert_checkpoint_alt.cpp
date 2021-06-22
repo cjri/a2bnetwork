@@ -10,6 +10,7 @@ void ConvertCheckpointAlt() {
         vector<tpairs> trans_sets;
         cout << "Reading checkpoint\n";
         ReadCheckpoint2 (set,check_info[i][1],new_subset,trans_sets);
+        cout << "Done reading\n";
         int n_nodes=trans_sets[0].pair.size()+1;
         vector<int> in_init;
         for (int j=0;j<n_nodes;j++)  {

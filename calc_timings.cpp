@@ -2,102 +2,130 @@
 #include "calc_timings.h"
 
 void CalculateTimingStats (run_params p) {
-    vector< vector<int> > timings;
-    vector<double> likes;
-    ReadTimeData (p,timings,likes);
-    vector<int> max=timings[0];
-    CalculateRelativeTimings(max,timings);
-    NormaliseLikelihoods(likes);
-    vector< vector<double> > data;
-    CalculateTLikelihoods (max,data,likes,timings);
+    vector<tdata> timing_data;
+    int min=1000;
+    int max=0;
+    ReadTimeData (p,min,max,timing_data);
+    NormaliseLikelihoods(timing_data);
 
-    //Output data
-    ofstream rel_file;
-    rel_file.open("Relative_times.out");
-    for (int i=0;i<data.size();i++) {
-        for (int j=0;j<data[i].size();j++) {
-            rel_file << data[i][j] << " ";
-        }
-        rel_file << "\n";
-    }
+    //Setup likelihoods;
+    vector< vector<double> > likelihoods;
+    SetupLikelihoods(p,min,max,likelihoods);
+
+    vector<string> all_edge=timing_data[timing_data.size()-1].edges;
+    //Allocate edge numbers
+    cout << "Allocating edge numbers\n";
+    AllocateEdgeNumbers (all_edge,timing_data);
+    
+    //Fill likelihood table
+    CompileLikelihoodData (p,min,timing_data,likelihoods);
+
+    OutputTimeData (min,all_edge,likelihoods);
+    
 }
 
-void ReadTimeData (run_params p, vector< vector<int> >& timings, vector<double>& likes) {
-    cout << "Reading data\n";
+void CompileLikelihoodData (run_params& p, int min, vector<tdata>& timing_data, vector< vector<double> >& likelihoods) {
+    cout << "Get likelihoods\n";
+    if (p.absolute==0) {//Have relative timings
+        for (int i=0;i<timing_data.size();i++) {
+            for (int j=0;j<timing_data[i].times.size();j++) {
+                likelihoods[timing_data[i].edge_number[j]][timing_data[i].times[j]]=likelihoods[timing_data[i].edge_number[j]][timing_data[i].times[j]]+timing_data[i].L;
+            }
+        }
+    } else {
+        for (int i=0;i<timing_data.size();i++) {
+            for (int j=0;j<timing_data[i].times.size();j++) {
+                likelihoods[timing_data[i].edge_number[j]][timing_data[i].times[j]-min]=likelihoods[timing_data[i].edge_number[j]][timing_data[i].times[j]-min]+timing_data[i].L;
+            }
+        }
+    }
+
+}
+
+void OutputTimeData (int min, const vector<string>& all_edge, const vector< vector<double> >& likelihoods) {
+    cout << "X ";
+    for (int i=0;i<all_edge.size();i++) {
+        cout << all_edge[i] << " ";
+    }
+    cout << "\n";
+    
+    for (int i=0;i<likelihoods[0].size();i++) {
+        cout << min+i << " ";
+        for (int j=0;j<likelihoods.size();j++) {
+            cout << likelihoods[j][i] << " ";
+        }
+        cout << "\n";
+    }
+
+}
+
+void ReadTimeData (run_params p, int& min, int& max, vector<tdata>& timing_data) {
+    cout << "Reading data " << p.time_file << "\n";
     ifstream time_file;
     time_file.open(p.time_file.c_str());
     int n;
     double x;
-    vector<int> init;
-    for (int i=0;i<=p.n_edges;i++) {
-        init.push_back(-1);
-    }
-    vector<int> tmp;
-    int index=-1;
+    string s;
     for (int i=0;i<500000000;i++) {
-        tmp=init;
-        vector<int> tm;
+        tdata t;
+        for (int j=0;j<p.n_edges;j++) {
+            if (!(time_file >> s)) break;
+            t.edges.push_back(s);
+          //  cout << s << " ";
+        }
+        if (!(time_file >> s)) break;
         for (int j=0;j<p.n_edges;j++) {
             if (!(time_file >> n)) break;
-            index=n;
-            if (!(time_file >> n)) break;
-            tmp[index]=n;
+            t.times.push_back(n);
+           // cout << n << " ";
+            if (n<min) {
+                min=n;
+            }
+            if (n>max) {
+                max=n;
+            }
         }
+       // cout << "\n";
         if (!(time_file >> x)) break;
-        timings.push_back(tmp);
-        likes.push_back(x);
+        t.L=x;
+        timing_data.push_back(t);
     }
 }
 
-void CalculateRelativeTimings(vector<int>& max, vector< vector<int> >& timings) {
-    cout << "Calculate relative times\n";
-    for (int i=0;i<max.size();i++) {
-        max[i]=0;
+void NormaliseLikelihoods (vector<tdata>& timing_data) {
+    cout << "Calculate normalised likelihoods " << timing_data.size() << "\n";
+    double tot=0;
+    for (int i=0;i<timing_data.size();i++) {
+        timing_data[i].L=exp(timing_data[i].L);
+        tot=tot+timing_data[i].L;
     }
-    for (int i=0;i<timings.size();i++) {
-        int zero=1000;
-        for (int j=0;j<timings[i].size();j++) {
-            if (timings[i][j]>=0&&timings[i][j]<zero) {
-                zero=timings[i][j];
-            }
-        }
-        for (int j=0;j<timings[i].size();j++) {
-            if (timings[i][j]>=zero) {
-                timings[i][j]=timings[i][j]-zero;
-                if (timings[i][j]>max[j]) {
-                    max[j]=timings[i][j];
+    for (int i=0;i<timing_data.size();i++) {
+        timing_data[i].L=timing_data[i].L/tot;
+    }
+}
+
+void SetupLikelihoods(run_params& p, int min, int max, vector< vector<double> >& likelihoods) {
+    cout << "Setup likelihoods " << min << " " << max << "\n";
+    vector<double> l_store;
+    for (int i=min;i<=max;i++) {
+        l_store.push_back(0);
+    }
+    for (int i=0;i<p.n_edges;i++) {
+        likelihoods.push_back(l_store);
+    }
+
+}
+
+void AllocateEdgeNumbers (const vector<string>& all_edge, vector<tdata>& timing_data) {
+    for (int i=0;i<timing_data.size();i++) {
+        for (int j=0;j<timing_data[i].edges.size();j++) {
+            for (int k=0;k<all_edge.size();k++) {
+                if (timing_data[i].edges[j]==all_edge[k]) {
+                    timing_data[i].edge_number.push_back(k);
+                    break;
                 }
             }
         }
     }
 }
 
-void NormaliseLikelihoods (vector<double>& likes) {
-    cout << "Calculate real likelihoods\n";
-    double tot=0;
-    for (int i=0;i<likes.size();i++) {
-        likes[i]=exp(likes[i]);
-        tot=tot+likes[i];
-    }
-    for (int i=0;i<likes.size();i++) {
-        likes[i]=likes[i]/tot;
-    }
-}
-
-void CalculateTLikelihoods (vector<int>& max, vector< vector<double> >& data, vector<double>& likes, const vector< vector<int> >& timings) {
-    for (int i=0;i<max.size();i++) {
-        vector<double> d;
-        for (int j=0;j<max[i];j++) {
-            d.push_back(0);
-        }
-        d.push_back(0);
-        data.push_back(d);
-    }
-    for (int i=0;i<timings.size();i++) {
-        for (int j=0;j<timings[i].size();j++) {
-            if (timings[i][j]>=0) {
-                data[j][timings[i][j]]=data[j][timings[i][j]]+likes[i];
-            }
-        }
-    }
-}

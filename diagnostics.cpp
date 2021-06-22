@@ -147,6 +147,27 @@ void PrintTransSampleTimes (int c, const vector<int>& times, const vector<pat>& 
     }
 }
 
+void PrintRelativeTTimes (int c, int o, vector<int>& times, const vector<tpairs>& trans_sets) {
+    for (int i=0;i<trans_sets[c].orders[o].size();i++) {
+        cout << trans_sets[c].ordered_pair[i].from << "-" << trans_sets[c].ordered_pair[i].to << " ";
+    }
+    cout << "T ";
+    for (int i=0;i<times.size();i++) {
+        cout << times[i]-times[0] << " ";
+    }
+}
+
+void PrintAbsoluteTTimes (int c, int o, vector<int>& times, const vector<tpairs>& trans_sets) {
+    for (int i=0;i<trans_sets[c].orders[o].size();i++) {
+        cout << trans_sets[c].ordered_pair[i].from << "-" << trans_sets[c].ordered_pair[i].to << " ";
+    }
+    cout << "T ";
+    for (int i=0;i<times.size();i++) {
+        cout << times[i] << " ";
+    }
+
+}
+
 void PrintTreespace (const vector<nbranch>& treespace) {
     for (int k=0;k<treespace.size();k++) {
         cout << k << " ";

@@ -25,7 +25,7 @@ void FindPlausibleOrders () {
         vector< vector<int> > orders;
         cout << "Make orderings\n";
         ConstructOrderingsNew(trans_sets,orders);
-        cout << cout << "Number of orderings " << orders.size() << "\n";
+        cout << "Number of orderings " << orders.size() << "\n";
         
         //For each possible constraint find which orders are compatible.  Store all of these
         cout << "Find order filter " << trans_sets[0].pair.size() << "\n";
@@ -66,6 +66,7 @@ void ConstructOrderingsNew(vector<tpairs>& trans_sets, vector< vector<int> >& or
         }
         orders.push_back(temp);
     } while (next_permutation(order,order+s));
+    cout << "Done\n";
 }
 
 void FindOrderFilter (int size, const vector<int>& factorial, const vector< vector<int> >& orders, vector< vector< vector<int> > >& order_filter) {

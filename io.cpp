@@ -2,6 +2,7 @@ using namespace std;
 #include "basicmodel.h"
 #include "diagnostics.h"
 #include "likelihoods.h"
+#include "threshold_data.h"
 #include "io.h"
 
 void GetOptions (run_params& p, int argc, const char **argv) {
@@ -37,12 +38,14 @@ void GetOptions (run_params& p, int argc, const char **argv) {
 	p.turner=1;
 	p.rem_no_seq=1;
 	p.seq_noise=0.41369;
+	p.chat=0.5;
+    p.tight=0;
 	p.threshold=-17.3;
     p.threshold_singleLL=-20;
 	p.thresholdns=0;
 	p.space=1; //By default read in spatial information
 	p.read_subs=0;
-	p.max_n=10;
+	p.max_n=1;
 	p.seqvar=0;
     //Core files for analysis
     p.ali_file="../Model_data/Seqs_editN20_manali_plus.fa";
@@ -52,6 +55,7 @@ void GetOptions (run_params& p, int argc, const char **argv) {
     //May want to read in subset and likelihood data
 	p.sub_file="Subsets1.in";
     p.likelihood_file="Likelihoods_0_1.out";
+    p.time_file="Timings.out";
     //Delimiters for date information
 	p.pat_delim='/';
 	p.mov_delim='.';
@@ -59,6 +63,7 @@ void GetOptions (run_params& p, int argc, const char **argv) {
 	p.noseq=0;
 	p.utopia=0;
 	p.calc_thresholds=0;
+	p.hcw_gap=0.5;
     p.specify_set=-1;
     p.specify_remove=-1;
     p.c_start=0;
@@ -66,6 +71,8 @@ void GetOptions (run_params& p, int argc, const char **argv) {
     p.calculation=1;
     p.n_edges=5;
     p.consistency=1;
+    p.distance=1;
+    p.absolute=0;
 	int x=1;
 	while (x < argc && (argv[x][0]=='-')) {
 		p_switch=argv[x];
@@ -120,6 +127,9 @@ void GetOptions (run_params& p, int argc, const char **argv) {
 		} else if (p_switch.compare("--sub_file")==0) {
 			x++;
 			p.sub_file=argv[x];
+        } else if (p_switch.compare("--time_file")==0) {
+            x++;
+            p.time_file=argv[x];
 		} else if (p_switch.compare("--spatial_data")==0) {
 			x++;
 			p.space=atoi(argv[x]);
@@ -129,6 +139,9 @@ void GetOptions (run_params& p, int argc, const char **argv) {
 		} else if (p_switch.compare("--threshold")==0) {
 			x++;
 			p.threshold=atoi(argv[x]);
+        } else if (p_switch.compare("--tight")==0) {
+            x++;
+            p.tight=atoi(argv[x]);
 		} else if (p_switch.compare("--maxn")==0) {
 			x++;
 			p.max_n=atoi(argv[x]);
@@ -144,6 +157,9 @@ void GetOptions (run_params& p, int argc, const char **argv) {
         } else if (p_switch.compare("--calculation")==0) {
             x++;
             p.calculation=atoi(argv[x]);
+		} else if (p_switch.compare("--hcw_gap")==0) {
+			x++;
+			p.hcw_gap=atof(argv[x]);
         } else if (p_switch.compare("--specify_set")==0) {
             x++;
             p.specify_set=atoi(argv[x]);
@@ -162,7 +178,13 @@ void GetOptions (run_params& p, int argc, const char **argv) {
         } else if (p_switch.compare("--n_edges")==0) {
             x++;
             p.n_edges=atoi(argv[x]);
-        } else {
+        } else if (p_switch.compare("--distance")==0) {
+            x++;
+            p.distance=atoi(argv[x]);
+        } else if (p_switch.compare("--absolute")==0) {
+            x++;
+            p.absolute=atoi(argv[x]);
+       } else {
 			cout << "Incorrect usage " << argv[x] << "\n";
 			exit(1);
 		}
@@ -175,6 +197,86 @@ void GetOptions (run_params& p, int argc, const char **argv) {
 	}
 	SetThreshold(p);
 }
+
+
+/*
+ The following routine is deprecated in favour of reading in data directly through code, but it allows threshold data to be read in from external files.  Example files are provided in the Data directory on the GitHub page
+ 
+void GetThresholds (vector< vector<double> >& thresholds95, vector< vector<double> >& thresholds99, double& t95NS, double& t99NS, int& error) {
+	t95NS=0;
+	t99NS=0;
+	ifstream t95;
+	ifstream t99;
+	ifstream t95n;
+	ifstream t99n;
+	t95.open("../Data/Thresholds95.dat");
+	t99.open("../Data/Thresholds99.dat");
+	t95n.open("../Data/Thresholds95NS.dat");
+	t99n.open("../Data/Thresholds99NS.dat");
+	int n;
+	double x;
+	t95n >> x;
+	t95NS=x;
+	t99n >> x;
+	t99NS=x;
+	if (t95NS>-0.01) {
+		cout << "Error reading NS threshold: File not found ../Data/Thresholds95NS.dat\n";
+		cout << "Note: The missing file can be generated using the --calc_thresholds 1 flag\n";
+		error=1;
+	}
+	if (t99NS>-0.01) {
+		cout << "Error reading NS threshold: File not found ../Data/Thresholds99NS.dat\n";
+		cout << "Note: The missing file can be generated using the --calc_thresholds 1 flag\n";
+		error=1;
+	}
+	int index1=-10;
+	vector<double> t;
+	for (int i=0;i<1000000;i++) {
+		if (!(t95 >> n)) break;
+		if (!(t95 >> n)) break;
+		if (!(t95 >> x)) break;
+		t.push_back(x);
+		index1++;
+		if (index1>40) {
+			index1=-10;
+			thresholds95.push_back(t);
+			t.clear();
+		}
+	}
+	index1=-10;
+	for (int i=0;i<1000000;i++) {
+		if (!(t99 >> n)) break;
+		if (!(t99 >> n)) break;
+		if (!(t99 >> x)) break;
+		t.push_back(x);
+		index1++;
+		if (index1>40) {
+			index1=-10;
+			thresholds99.push_back(t);
+			t.clear();
+		}
+	}
+	if (thresholds95.size()<1) {
+		cout << "Error reading thresholds.  Can't find file ../Data/Thresholds95.dat: Check this\n";
+		cout << "Note: The missing file can be generated using the --calc_thresholds 1 flag\n";
+		error=1;
+	}
+	if (thresholds99.size()<1) {
+		cout << "Error reading thresholds.  Can't find file ../Data/Thresholds99.dat: Check this\n";
+		cout << "Note: The missing file can be generated using the --calc_thresholds 1 flag\n";
+		error=1;
+	}
+}
+*/
+
+
+void GetThresholdsInternal (vector< vector<double> >& thresholds95, vector< vector<double> >& thresholds99, double& t95NS, double& t99NS, int& error) {
+    ReadThresholdData (thresholds95,thresholds99,t95NS,t99NS);
+    if (thresholds95.size()==0|| thresholds99.size()==0) {
+        cout << "Error importing threshold data.  Check code...\n";
+    }
+}
+
 
 void SetThreshold (run_params& p) {
     //Likelihood thresholds used in subsetting
@@ -527,7 +629,7 @@ void ReadLocationData (run_params p, vector<pat>& pdat) {
         } else {
             ReadHCWMovFromCSV(p,pdat);
             ReadWardMovFromCSV(p,pdat);
-            EditHCWMovData(pdat); //12 hour window of uncertainty - days with probability 0.5
+            EditHCWMovData(p,pdat); //12 hour window of uncertainty - days with probability p.hcw_gap by default = 0.5
         }
         if (p.diagnostic==1) {
             PrintPdat(pdat);
@@ -672,38 +774,40 @@ void ReadWardMovFromCSV(run_params p, vector<pat>& pdat) {
 	}
 }
 
-void EditHCWMovData (vector<pat>& pdat) {
+void EditHCWMovData (run_params p, vector<pat>& pdat) {
 	//Adds a 12-hour window of uncertainty in the location of HCWs (not patients)
 	//Represents e.g. transmission via touching equipment, night shift timings, etc.
 	//Assign a probability of 0.5 to the days before and after a known presence
 	for (int i=0;i<pdat.size();i++) {
-		vector<loc> new_loc;
-		for (int j=0;j<pdat[i].locat.size();j++) {
-			loc l=pdat[i].locat[j];
-			int minus=1;
-			int plus=1;
-			if (j>0&&pdat[i].locat[j-1].date==l.date-1&&pdat[i].locat[j-1].ward==l.ward&&pdat[i].locat[j-1].prob==1) {
-				minus=0;
-			}
-			if (j<pdat[i].locat.size()-1&&pdat[i].locat[j+1].date==l.date+1&&pdat[i].locat[j+1].ward==l.ward&&pdat[i].locat[j+1].prob==1) {
-				plus=0;
-			}
-			if (minus==1) {
-				loc lm=l;
-				lm.date--;
-				lm.prob=0.5;
-				new_loc.push_back(lm);
-			}
-			if (plus==1) {
-				loc lp=l;
-				lp.date++;
-				lp.prob=0.5;
-				new_loc.push_back(lp);
-			}
-		}
-		for (int j=0;j<new_loc.size();j++) {
-			pdat[i].locat.push_back(new_loc[j]);
-		}
+        if (pdat[i].hcw==1) {
+            vector<loc> new_loc;
+            for (int j=0;j<pdat[i].locat.size();j++) {
+                loc l=pdat[i].locat[j];
+                int minus=1;
+                int plus=1;
+                if (j>0&&pdat[i].locat[j-1].date==l.date-1&&pdat[i].locat[j-1].ward==l.ward&&pdat[i].locat[j-1].prob==1) {
+                    minus=0;
+                }
+                if (j<pdat[i].locat.size()-1&&pdat[i].locat[j+1].date==l.date+1&&pdat[i].locat[j+1].ward==l.ward&&pdat[i].locat[j+1].prob==1) {
+                    plus=0;
+                }
+                if (minus==1) {
+                    loc lm=l;
+                    lm.date--;
+                    lm.prob=p.hcw_gap;
+                    new_loc.push_back(lm);
+                }
+                if (plus==1) {
+                    loc lp=l;
+                    lp.date++;
+                    lp.prob=p.hcw_gap;
+                    new_loc.push_back(lp);
+                }
+            }
+            for (int j=0;j<new_loc.size();j++) {
+                pdat[i].locat.push_back(new_loc[j]);
+            }
+        }
 	}
 }
 
@@ -858,6 +962,7 @@ void WriteBestRoot (int index, const vector<treestore>& ts_roots) {
 	cout << "Likelihood " << ts_roots[index].logL << "\n";
 }
 
+/*
 void WriteMLDetails (run_params p, const int index, const vector< vector<int> >& bin, const vector<treestore_plus>& ts_bin, vector<pat>& pdat) {
 	cout << "Maximum likelihood reconstruction\n";
 	for (int i=0;i<bin[index].size();i++) {
@@ -896,4 +1001,4 @@ void WriteMLDetails (run_params p, const int index, const vector< vector<int> >&
 		}
 		cout << "Log L " << ts_bin[index].ts[i].logL << "\n";
 	}
-}
+}*/

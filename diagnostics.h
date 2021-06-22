@@ -17,4 +17,6 @@ void PrintTimings (int c, const vector<tpairs>& trans_sets, const vector< vector
 void PrintLikelihoods (int c, const vector<tpairs>& trans_sets, const vector< vector<ijlike> >& new_like_trans);
 void PrintTimes (const vector<int>& times);
 void PrintTransSampleTimes (int c, const vector<int>& times, const vector<pat>& new_pdat, const vector<tpairs>& trans_sets);
+void PrintRelativeTTimes (int c, int o, vector<int>& times, const vector<tpairs>& trans_sets);
+void PrintAbsoluteTTimes (int c, int o, vector<int>& times, const vector<tpairs>& trans_sets);
 void PrintTreespace (const vector<nbranch>& treespace);
