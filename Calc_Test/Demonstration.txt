@@ -9,7 +9,7 @@ Calculations may be run in a series of steps:
 
 Step 1:
 
-../NewEpiCode/run_basic --pat_file Pat_file_test.csv --ali_file Test_seqs.fa --ward_file ward_movement_test.csv --mov_file hcw_movement_test.csv --calculation 1 > Run1.out
+../run_basic --pat_file Pat_file_test.csv --ali_file Test_seqs.fa --ward_file ward_movement_test.csv --mov_file hcw_movement_test.csv --calculation 1 > Run1.out
 
 This calculation identifies a list of plausible transmission networks connecting the individuals.  The output files are: 
 
@@ -29,7 +29,7 @@ Here, the first network is one in which individual 0 infects all of the individu
 
 Step 2:
 
-../NewEpiCode/run_basic --pat_file Pat_file_test.csv --ali_file Test_seqs.fa --ward_file ward_movement_test.csv --mov_file hcw_movement_test.csv --calculation 2 > Run2.out
+../run_basic --pat_file Pat_file_test.csv --ali_file Test_seqs.fa --ward_file ward_movement_test.csv --mov_file hcw_movement_test.csv --calculation 2 > Run2.out
 
 This calculation identifies the plausible orderings in which the events in each transmission network can occur.  The outputs are:
 
@@ -39,7 +39,7 @@ Run2.out: This contains various output from the code.
 
 Step 3:
 
-../NewEpiCode/run_basic --pat_file Pat_file_test.csv --ali_file Test_seqs.fa --ward_file ward_movement_test.csv --mov_file hcw_movement_test.csv --calculation 3 > Run3.out
+../run_basic --pat_file Pat_file_test.csv --ali_file Test_seqs.fa --ward_file ward_movement_test.csv --mov_file hcw_movement_test.csv --calculation 3 > Run3.out
 
 This calculates likelihoods for all of the plausible ordered networks.  The likelihood provided is the sum of the likelihoods for each order of a network.  The outputs are:
 
@@ -47,7 +47,7 @@ Likelihoods_0_0.out: Contains a list of the likelihoods for each of the networks
 
 Run3.out: This contains various output from the code.
 
-../NewEpiCode/run_basic --pat_file Pat_file_test.csv --ali_file Test_seqs.fa --ward_file ward_movement_test.csv --mov_file hcw_movement_test.csv --calculation 4 --likelihood_file Likelihoods_0_0
+../run_basic --pat_file Pat_file_test.csv --ali_file Test_seqs.fa --ward_file ward_movement_test.csv --mov_file hcw_movement_test.csv --calculation 4 --likelihood_file Likelihoods_0_0
 ut > Run4.out
 
 This compiles the likelihoods into a set of edge occupancies.  These are calculated using the likelihoods calculated for each of the networks described in Likelihoods_0_0.out.  The outputs are:
@@ -63,7 +63,7 @@ The above calculations run a complete calculation and are designed for a case wh
 
 Alternative Step 3:
 
-../NewEpiCode/run_basic --pat_file Pat_file_test.csv --ali_file Test_seqs.fa --ward_file ward_movement_test.csv --mov_file hcw_movement_test.csv --calculation 3 --c_start x --c_step y  > Run3.out
+../run_basic --pat_file Pat_file_test.csv --ali_file Test_seqs.fa --ward_file ward_movement_test.csv --mov_file hcw_movement_test.csv --calculation 3 --c_start x --c_step y  > Run3.out
 
 This calculates likelihoods for every yth network in the list provided by the checkpoint file from --calculation 2, beginning at network x.
 
