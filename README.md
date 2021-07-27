@@ -1,0 +1,1 @@
+This code was used to generate a paper that has been accepted for publication at eLife.  See "Superspreaders drive the largest outbreaks of hospital onset COVID-19 infections", Illingworth and Hamilton et al., eLife, in press
