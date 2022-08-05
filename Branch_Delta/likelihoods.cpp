@@ -30,7 +30,14 @@ void CalculateTDLikelihoods (run_params p, const vector<pat>& pdat, const vector
 			} else {
 				for (int k=0;k<pdat[i].locat.size();k++) {
 					for (int l=0;l<pdat[j].locat.size();l++) {
+                        int match=0;
 						if (pdat[i].locat[k].ward.compare(pdat[j].locat[l].ward)==0&&pdat[i].locat[k].date==pdat[j].locat[l].date) {
+                            match=1;
+                        }
+                        if (pdat[i].locat[k].ward.compare("Everywhere")==0&&pdat[i].locat[k].date==pdat[j].locat[l].date) {
+                            match=1;
+                        }
+                        if (match==1) {
 							//Same time and place
 							tprob t;
 							t.time=pdat[i].locat[k].date;
@@ -39,7 +46,12 @@ void CalculateTDLikelihoods (run_params p, const vector<pat>& pdat, const vector
 						}
 					}
 				}
-				//cout << "Number of positive contacts " << contact_times_probs.size() << "\n";
+				/*cout << "Number of positive contacts " << contact_times_probs.size() << "\n";
+                for (int k=0;k<contact_times_probs.size();k++) {
+                    cout << k << " " << contact_times_probs[k].time << " " << contact_times_probs[k].weight << "\n";
+                }*/
+                
+                
 				if (contact_times_probs.size()==0) {
 					lij.lL_tot=-1e10;
 					lij.ns_lL_tot=-1e10;
@@ -54,7 +66,9 @@ void CalculateTDLikelihoods (run_params p, const vector<pat>& pdat, const vector
 					FillTimes(contact_times_probs);
 					for (int k=0;k<contact_times_probs.size();k++) {
 						double lL=LikelihoodFromItoJTimeK (i,j,k,p,contact_times_probs,seqdists,seqdists_c,pdat);
-                        //Add in filter here - all likelihoods must be at least a thrshold.  Remove everything else
+                        //Add in filter here - all likelihoods must be at least a threshold.  Remove everything else
+                        //Effect of this 1: Smaller likelihoods aren't precisely the same as those in A2B-COVID
+                        //Effect of this 2: Speeds up the calculation as we can consider restricted windows of time
                         if (lL>p.threshold_singleLL) {
                             lij.lL_tot=lij.lL_tot+exp(lL);
                             lij.contact_likes.push_back(lL);
@@ -157,9 +171,14 @@ void FillTimes (vector<tprob>& contact_times_probs) {
 
 double LikelihoodFromItoJTimeK (int i, int j, int k, const run_params& p, const vector<tprob>& contact_times_probs, const vector< vector<int> >& seqdists, const vector< vector<tpair> >& seqdists_c, const vector<pat>& pdat) {
     //Transmission from i to j at time contact_times[k].  Integrate sequence evolution date with key likelihood.
+    //cout << "From " << i << " to " << j << " time " << k << "\n";
+    //cout << pdat[i].code << " " << pdat[j].code << "\n";
+    //cout << pdat[i].time_s << " " << pdat[j].time_s << "\n";
     double L=0;
     //Sequence component of the likelihoods
-    if (pdat[j].time_seq<contact_times_probs[k].time) { //Data must be collected from j after the time of transmission
+    if (pdat[j].type==1) {//j is flagged as community infection
+        L=-1e10;
+    } else if (pdat[j].time_seq<contact_times_probs[k].time) { //Data must be collected from j after the time of transmission
         L=L-1e10; //Can't transmit after collecting data from recipient
     } else {
         if (p.noseq==0) {
@@ -174,6 +193,7 @@ double LikelihoodFromItoJTimeK (int i, int j, int k, const run_params& p, const 
                     L=L+Poisson(seqdists_c[i][j].from,(p.seq_noise/2)); //D1 data - any novel variants must arise from noise
                     L=L+Poisson(seqdists_c[i][j].to,evo+(p.seq_noise/2)); //Evolution between D1 and D2
                 }
+                //cout << "evo " << evo << " L here "<< L << "\n";
             } else { //Second, case where transmission is before collecting the first sequence sample
                 //cout << "Second\n";
                 //Calculate times
@@ -188,16 +208,21 @@ double LikelihoodFromItoJTimeK (int i, int j, int k, const run_params& p, const 
                     L=L+Poisson(seqdists_c[i][j].from,evo1+(p.seq_noise/2)); //Evolution from transmission to D1
                     L=L+Poisson(seqdists_c[i][j].to,evo2+(p.seq_noise/2)); //Evolution from transmission to D2
                 }
+                //cout << "evo1 " << evo1 << " evo2 " << evo2 << " L here "<< L << "\n";
             }
         }
         double OGL=OffsetGammaCDFFlex(contact_times_probs[k].time-pdat[i].time_s,p.pa,p.pb,p.po); //Time from symptom onset of i to transmission
+        //cout << "OGL " << OGL << "\n";
         L=L+OGL;
         if (contact_times_probs[k].weight==0) {
             L=L-1e10; //Can't transmit when there is no contact between individuals
         } else {
             L=L+log(contact_times_probs[k].weight); //Probability of contact between individuals
+            //cout << "W " << contact_times_probs[k].weight << " " << L << "\n";
         }
+        //cout << pdat[j].time_s << " " << contact_times_probs[k].time << " " << p.smu << " " << p.ssigma << "\n";
         double LN=LogNormal(pdat[j].time_s-contact_times_probs[k].time,p.smu,p.ssigma);//Time from transmission to j becoming symptomatic
+        //cout << "LN " << LN << "\n";
         L=L+LN;
     }
     //cout << "Log " << L << "\n";

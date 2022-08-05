@@ -1,6 +1,6 @@
 CC	      = gcc
-CC_FLAGS        = -g3 -O3 -Wall -D_GLIBCXX_DEBUG -I  /usr/local/include/gsl/
-LD_FLAGS	= -L/usr/local/lib -lgsl -lgslcblas -lm -lstdc++ 
+CC_FLAGS        = -g3 -O3 -Wall -D_GLIBCXX_DEBUG -I  /opt/homebrew/Cellar/gsl/2.7.1/include/
+LD_FLAGS        = -L/opt/homebrew/Cellar/gsl/2.7.1/lib  -lgsl -lgslcblas -lm -lstdc++ 
 BAS		= basicmodel.o io.o utilities.o distributions.o likelihoods.o variants.o diagnostics.o thresholds.o threshold_data.o checkpointing.o process_likelihoods.o find_trans_networks.o find_adjacent.o convert_likelihoods_alt.o convert_checkpoint_alt.o find_orders.o calc_timings.o
 
 basic: $(BAS)

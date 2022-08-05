@@ -1,0 +1,4 @@
+Added facility to read in vague HCW location data via p.extra_mov_file.
+Added facility to read in bay-level ward_file showing patient information.
+Modified code to allow the read-in of new-format ward data - mirrors that of bay-level data.
+Updated instructions

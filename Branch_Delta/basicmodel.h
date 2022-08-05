@@ -35,7 +35,11 @@ struct run_params {
 	string pat_file;	//Name of file with patient data i.e. code, date of symptoms, HCW status, etc.
 	string mov_file;	//Name of file with HCW movement data
 	string ward_file;	//Name of file with patient movement data
+    string ward_bay_file; //Name of file with patient movement data: Bay-level data format
 	string sub_file;	//Name of file with subset data
+    string extra_mov_file; //Name of file with non-specific HCW movements
+    int error; //General error flag
+    int ward_format_old;    //Flag for old way of specifying patient location information
 	int turner;	//Don't estimate uncertainty in tree
 	int space; //Include spatial data for individuals
 	int read_subs; //Read in subsets - can be used to split the inferred graph if needed
@@ -61,7 +65,8 @@ struct run_params {
 	vector< vector<double> > threshold99; //99% thresholds by {D_A,D_B}
     int delta; //Flag to use delta-based parameters
 	double hcw_gap; //Proportion of a day added to the end of each hcw
-	
+    double hcw_location_default; //Default probability of an HCW being in a given location
+    
     //1. Find transmission networks
     int specify_set;
     int specify_remove;
@@ -89,6 +94,8 @@ struct run_params {
 
 struct loc {
 	string ward;
+    int bay;
+    int bay_size;
 	int date;
 	double prob;
 };

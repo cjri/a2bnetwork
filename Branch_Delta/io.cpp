@@ -48,10 +48,14 @@ void GetOptions (run_params& p, int argc, const char **argv) {
 	p.max_n=100;  //N.B. Have disabled max number of Ns at variant sites with this default
 	p.seqvar=0;
     //Core files for analysis
-    p.ali_file="../Model_data/Seqs_editN20_manali_plus.fa";
-    p.pat_file="data1.csv";
-    p.mov_file="data2.csv";
-	p.ward_file="../Model_data/Latest/ward_movement_network_edit_anonymised_20200811_NoPII.csv";
+    p.ali_file="NULL";
+    p.pat_file="NULL";
+    p.mov_file="NULL";
+	p.ward_file="NULL";
+    p.ward_bay_file="NULL";  //Patient movements at bay-level resolution i.e. ward data with more info
+    p.extra_mov_file="NULL"; //Time non-specific HCW ward assignments
+    p.ward_format_old=0;
+    p.error=0;
     //May want to read in subset and likelihood data
 	p.sub_file="Subsets1.in";
     p.likelihood_file="Likelihoods_0_1.out";
@@ -60,6 +64,7 @@ void GetOptions (run_params& p, int argc, const char **argv) {
 	p.pat_delim='/';
 	p.mov_delim='.';
 	p.diagnostic=0;
+    p.hcw_location_default=0.5714286;
 	p.noseq=0;
 	p.utopia=0;
 	p.calc_thresholds=0;
@@ -125,9 +130,18 @@ void GetOptions (run_params& p, int argc, const char **argv) {
 		} else if (p_switch.compare("--mov_file")==0) {
 			x++;
 			p.mov_file=argv[x];
+        } else if (p_switch.compare("--extra_mov_file")==0) {
+            x++;
+            p.extra_mov_file=argv[x];
         } else if (p_switch.compare("--ward_file")==0) {
             x++;
             p.ward_file=argv[x];
+        } else if (p_switch.compare("--ward_bay_file")==0) {
+            x++;
+            p.ward_bay_file=argv[x];
+        } else if (p_switch.compare("--ward_format_old")==0) {
+            x++;
+            p.ward_format_old=atoi(argv[x]);
 		} else if (p_switch.compare("--sub_file")==0) {
 			x++;
 			p.sub_file=argv[x];
@@ -348,7 +362,9 @@ void ReadPatFromCSV(run_params p, vector<pat>& pdat) {
 			if (subs[2]=="1") {
 				pt.time_s_cert=1;
 			} else {
-				pt.time_s_cert=0;
+                pt.time_s_cert=0;
+                pt.time_s=pt.time_s-floor(p.uct_mean+0.5);
+
 			}
 			
 			cout << pt.code << " " << pt.code_match << " " << pt.hcw << " " << pt.type << " " << pt.time_s << " " << pt.time_seq << " " << pt.time_s_cert << "\n";
@@ -389,43 +405,114 @@ void MakeDMY (const int j, const vector<string>& subs, char delim, vector<int>& 
         dmy.push_back(atoi(sr.c_str()));
     }
 }
-            
-            
-int DatetoDay (const vector<int>& dmy) {
+
+void MakeDMY (run_params& p, string file, const int j, const vector<string>& subs, char delim, vector<int>& dmy) {
+//cout << j << " " << subs.size() << " " << subs[j] << " ";
+    stringstream sss(subs[j]);
+    while (sss.good()&&p.error==0) {
+        string sr;
+        getline(sss,sr,delim);
+        vector<string> months;
+        months.push_back("Jan");
+        months.push_back("Feb");
+        months.push_back("Mar");
+        months.push_back("Apr");
+        months.push_back("May");
+        months.push_back("Jun");
+        months.push_back("Jul");
+        months.push_back("Aug");
+        months.push_back("Sep");
+        months.push_back("Oct");
+        months.push_back("Nov");
+        months.push_back("Dec");
+        int found=0;
+        int add=-1;
+        for (int i=0;i<months.size();i++) {
+            if (sr.compare(months[i])==0) {
+                add=i+1;
+                found=1;
+                break;
+            }
+        }
+        if (found==1) {
+            dmy.push_back(add);
+        } else {
+            dmy.push_back(atoi(sr.c_str()));
+        }
+    }
+    if (p.error==0) {
+        if (dmy.size()!=3) {
+            DateError(file,subs[j],delim);
+            p.error=1;
+        }
+        if (dmy[2]>50&&dmy[2]<100) {
+            YearOOR(file,subs[j]);
+            p.error=1;
+        }
+        if (dmy[2]>99&&dmy[2]<2000) {
+            YearOOR(file,subs[j]);
+            p.error=1;
+        }
+        if (dmy[2]>2050) {
+            YearOOR(file,subs[j]);
+            p.error=1;
+        }
+    }
+}
+
+void DateError (string file, string subsj, char delim) {
+    cout << "Error reading in date\n" << subsj << " in " << file << "\n";
+    cout << "Format must be DD" << delim << "MM" << delim << "YY or DD" << delim << "MM" << delim << "YYYY\n";
+}
+
+void YearOOR (string file, string subsj) {
+    cout << "Error: Year out of range in entry\n" << subsj << " in " << file << "\n";
+    cout << "Possible fix: check date is in DD/MM/YY or DD/MM/YYYY format \n";
+}
+
+void RemoveSpaces(string file, int i, int& pr, vector<string>& subs) {
+    for (int j=0;j<subs.size();j++) {
+        //Remove spaces
+        vector<int> to_rem;
+        for (int k=0;k<subs[j].size();k++){
+            if (subs[j].compare(k,1," ")==0) {
+                to_rem.push_back(k);
+            }
+        }
+        sort(to_rem.begin(),to_rem.end());
+        reverse(to_rem.begin(),to_rem.end());
+        for (int k=0;k<to_rem.size();k++) {
+            if (pr==0) {
+                cout << "Warning: Removing spaces from line " << i << " of " << file << "\n";
+                pr=1;
+            }
+            subs[j].erase(subs[j].begin()+to_rem[k]);
+        }
+    }
+}
+
+
+int DatetoDay (vector<int>& dmy) {
     //cout << dmy[0] << " " << dmy[1] << " " << dmy[2] << "\n";
     int day=dmy[0];
     int lp=1;
+    //Convert to YY format from YYYY
+    if (dmy[2]>1999) {
+        dmy[2]=dmy[2]-2000;
+    }
+    //Note: Here 0 indicates the year 2020.
+    
     //Year calculation
-    if (dmy[2]>2020) {
-        day=day+366;
+    int diff=dmy[2]-20;
+    day=day+(diff*365);
+    if (diff>0) {
+        int leap=diff/4;
+        day=day+leap+1;
+    }
+    if (diff%4!=3) {
         lp=0;
     }
-    if (dmy[2]>2021) {
-        day=day+365;
-        lp=0;
-    }
-    if (dmy[2]>2022) {
-        day=day+365;
-        lp=0;
-    }
-    if (dmy[2]>2023) {
-        day=day+365;
-    }
-    if (dmy[2]>2024) {
-        day=day+366;
-        lp=0;
-    }
-    if (dmy[2]>2025) {
-        day=day+365;
-        lp=0;
-    }
-    if (dmy[2]>2026) {
-        day=day+365;
-        lp=0;
-    }
-    if (dmy[2]>2027) {
-        day=day+365;
-    }
+
     //Month calculation
     if (dmy[1]>1) {
         day=day+31;
@@ -484,6 +571,27 @@ void ReadFastaAli (run_params p, vector<string>& names, vector<string>& seqs) {
             if (!(ali_file >> seq)) break;
             seqs.push_back(seq);
             index=1-index;
+        }
+    }
+}
+
+void CheckBaseCase (vector<string>& seqs) {
+    cout << "Check base case\n";
+    for (int i=0;i<seqs.size();i++) {
+        for (int j=0;j<seqs[i].size();j++) {
+            if (seqs[i].compare(j,1,"a")==0) {
+                seqs[i][j]='A';
+            } else if (seqs[i].compare(j,1,"c")==0) {
+                seqs[i][j]='C';
+            } else if (seqs[i].compare(j,1,"g")==0) {
+                seqs[i][j]='G';
+            } else if (seqs[i].compare(j,1,"t")==0) {
+                seqs[i][j]='T';
+            } else if (seqs[i].compare(j,1,"n")==0) {
+                seqs[i][j]='N';
+            } else if (seqs[i].compare(j,1,"-")==0) {
+                seqs[i][j]='N';
+            }
         }
     }
 }
@@ -650,9 +758,39 @@ void ReadLocationData (run_params p, vector<pat>& pdat) {
             //People there between -15 and 25? Check a@B            EnforceUtopia(pdat);
             EnforceModerateUtopia(pdat);
         } else {
-            ReadHCWMovFromCSV(p,pdat);
-            ReadWardMovFromCSV(p,pdat);
-            EditHCWMovData(p,pdat); //12 hour window of uncertainty - days with probability p.hcw_gap by default = 0.5
+            int pd=0;
+            int hd=0;
+            if (p.mov_file.compare("NULL")!=0) {
+                ReadHCWMovFromCSV(p,pdat);
+                EditHCWMovData(p,pdat); //12 hour window of uncertainty - days with probability p.hcw_gap by default = 0.5
+                hd=1;
+            }
+            //HCW data where location is known but no dates
+            if (p.extra_mov_file.compare("NULL")!=0) {
+                ReadExtraHCWMovFromCSV(p,pdat);
+                hd=1;
+            }
+            if (hd==0) {
+                cout << "Warning: No HCW location data\n";
+            }
+            if (p.ward_file.compare("NULL")!=0) {
+                if (p.ward_format_old==1) {
+                    ReadWardMovFromCSV(p,pdat);
+                } else {
+                    ReadWardMovFromCSVNew(p,pdat);
+                }
+                pd=1;
+            }
+            if (p.ward_bay_file.compare("NULL")!=0) {
+                if (pd==1) {
+                    cout << "Warning: Have specified two types of patient location data\n";
+                }
+                ReadWardMovBaysFromCSV(p,pdat);
+                pd=1;
+            }
+            if (pd==0) {
+                cout << "Warning: No patient location data\n";
+            }
         }
         if (p.diagnostic==1) {
             PrintPdat(pdat);
@@ -766,6 +904,64 @@ void ReadHCWMovFromCSV(run_params p, vector<pat>& pdat) {
 	}
 }
 
+void ReadExtraHCWMovFromCSV(run_params& p, vector<pat>& pdat) {
+    //Wards in which HCWs are always located
+    //First, find minimum and maximum times
+    int min=100000;
+    int max=-100000;
+    for (int i=0;i<pdat.size();i++) {
+        for (int j=0;j<pdat[i].locat.size();j++) {
+            if (pdat[i].locat[j].date>max) {
+                max=pdat[i].locat[j].date;
+            }
+            if (pdat[i].locat[j].date<min) {
+                min=pdat[i].locat[j].date;
+            }
+        }
+        if (pdat[i].time_s+25>max) {
+            max=pdat[i].time_s+25;
+        }
+        if (pdat[i].time_s-15<min) {
+            min=pdat[i].time_s-15;
+        }
+    }
+    ifstream csv_file;
+    csv_file.open(p.extra_mov_file.c_str());
+    string str;
+    int i=-1;
+    while (getline(csv_file,str)) {
+        i++;
+        if (i>0) {
+            RemovePunc(str);
+            //Split at commas
+            vector<string> subs;
+            SplitCommas(str,subs);
+            //Look for matching HCW
+            string pat=subs[0];
+            int index=-1;
+            for (int j=0;j<pdat.size();j++) {
+                if (pdat[j].code==pat) {
+                    index=j;
+                    //cout << pat << "\n";
+                    break;
+                }
+            }
+            //Assign the HCW as being on the specified ward every day of the study
+            loc l;
+            l.ward=subs[1];
+            l.prob=p.hcw_location_default;
+            if (p.diagnostic==0) {
+                cout << "Here " << pdat[index].code << " ward " << subs[1] << "    prob " << l.prob << "\n";
+            }
+            for (int t=min;t<=max;t++) {
+                l.date=t;
+                pdat[index].locat.push_back(l);
+            }
+        }
+    }
+    csv_file.close();
+}
+
 void ReadWardMovFromCSV(run_params p, vector<pat>& pdat) {
 	ifstream csv_file;
 	csv_file.open(p.ward_file.c_str());
@@ -821,6 +1017,170 @@ void ReadWardMovFromCSV(run_params p, vector<pat>& pdat) {
 		}
 	}
 }
+
+void ReadWardMovBaysFromCSV(run_params& p, vector<pat>& pdata) {
+    ifstream csv_file;
+    csv_file.open(p.ward_bay_file.c_str());
+    string str;
+    vector<int> dates;
+    int i=-1;
+    int spwarn=0;
+    while (getline(csv_file,str)) {
+        i++;
+        if (i>0&&p.error==0) {
+            //cout << str << "\n";
+            /*if (p.diagnostic==1) {
+                cout << "Ward_file string " << str << "\n";
+            }*/
+            //Edit string to remove "
+            RemovePunc(str);
+            //Split at commas
+            vector<string> subs;
+            SplitCommas(str,subs);
+            RemoveSpaces(p.ward_file.c_str(),i,spwarn,subs);
+
+            //Look for matching patient
+            string pat=subs[0];
+            int index=-1;
+            for (int j=0;j<pdata.size();j++) {
+                if (pdata[j].code==pat) {
+                    index=j;
+                    break;
+                }
+            }
+            //Found matching patient
+            if (index!=-1) {
+                int j=1;
+                loc l;
+                l.ward=subs[j];
+                //Check the following readout...
+                if (subs[j+1].compare("")!=0) {
+                    l.bay=stoi(subs[j+1]);
+                    l.bay_size=stoi(subs[j+2]);
+                } else {
+                    l.bay=-1;
+                    l.bay_size=-1;
+                }
+                if (l.ward.size()>0) {
+                    vector<int> dmy;
+                    MakeDMY(p,p.ward_file.c_str(),j+3,subs,p.pat_delim,dmy);
+                    int day1=DatetoDay(dmy);
+                    dmy.clear();
+                    if (p.error==0) {
+                        MakeDMY(p,p.ward_file.c_str(),j+7,subs,p.pat_delim,dmy);
+                        int day2=DatetoDay(dmy);
+                        for (int k=day1;k<=day2;k++) {
+                            l.date=k;
+                            l.prob=1;
+                            pdata[index].locat.push_back(l);
+                        }
+                    }
+                }
+            }
+        } else if (i>0) {
+            pat pt;
+            //Edit string to remove "
+            RemovePunc(str);
+            //Split by commas
+            vector<string> subs;
+            SplitCommas(str,subs);
+            RemoveSpaces(p.pat_file.c_str(),i,spwarn,subs);
+            cout << "Exclude individual " << subs[0] << " due to error in data\n";
+        }
+    }
+}
+
+void ReadWardMovFromCSVNew(run_params& p, vector<pat>& pdata) {
+    ifstream csv_file;
+    csv_file.open(p.ward_file.c_str());
+    string str;
+    vector<int> dates;
+    int i=-1;
+    int spwarn=0;
+    while (getline(csv_file,str)) {
+        i++;
+        if (i>0&&p.error==0) {
+            //cout << str << "\n";
+            /*if (p.diagnostic==1) {
+                cout << "Ward_file string " << str << "\n";
+            }*/
+            //Edit string to remove "
+            RemovePunc(str);
+            //Split at commas
+            vector<string> subs;
+            SplitCommas(str,subs);
+            RemoveSpaces(p.ward_file.c_str(),i,spwarn,subs);
+
+            //Look for matching patient
+            string pat=subs[0];
+            int index=-1;
+            for (int j=0;j<pdata.size();j++) {
+                if (pdata[j].code==pat) {
+                    index=j;
+                    //cout << pat << "\n";
+                    break;
+                }
+            }
+            /*if (p.diagnostic==1) {
+                cout << subs.size() << " " << index << "\n";
+            }*/
+
+            if (index!=-1) {
+                //cout << "Patient " << pat << "\n";
+                for (int j=1;j<subs.size();j=j+4) {
+                    loc l;
+                    l.ward=subs[j];
+                    /*if (l.ward.compare("WARD_48")==0) {
+                        l.ward="WARD_47";
+                    }
+                    if (l.ward.compare("WARD_49")==0) {
+                        l.ward="WARD_47";
+                    }
+                    if (l.ward.compare("WARD_50")==0) {
+                        l.ward="WARD_47";
+                    }*/
+                    //cout << "Ward " << subs[j] << " date " << subs[j+1] << "\n";
+                    if (l.ward.size()>0) {
+                        vector<int> dmy;
+                        MakeDMY(p,p.ward_file.c_str(),j+1,subs,p.pat_delim,dmy);
+                        /*cout << subs[j+1] << "\n";
+                        cout << dmy[0] << " " << dmy[1] << " " << dmy[2] << "\n";*/
+                        int day1=DatetoDay(dmy);
+                    //    cout << day1 << "\n";
+                    //    cout << "Error " << p.error << "\n";
+                        dmy.clear();
+                        if (p.error==0) {
+                            MakeDMY(p,p.ward_file.c_str(),j+3,subs,p.pat_delim,dmy);
+                            int day2=DatetoDay(dmy);
+                        //    cout << subs[j+3] << "\n";
+                        //    cout << dmy[0] << " " << dmy[1] << " " << dmy[2] << "\n";
+                        //    cout << day2 << "\n";
+                            /*if (p.diagnostic==1) {
+                                cout << day1 << " " << day2 << "\n";
+                            }*/
+                            for (int k=day1;k<=day2;k++) {
+                                l.date=k;
+                                l.prob=1;
+                                pdata[index].locat.push_back(l);
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (i>0) {
+            pat pt;
+            //Edit string to remove "
+            RemovePunc(str);
+            //Split by commas
+            vector<string> subs;
+            SplitCommas(str,subs);
+            RemoveSpaces(p.pat_file.c_str(),i,spwarn,subs);
+            cout << "Exclude individual " << subs[0] << " due to error in data\n";
+        }
+    }
+}
+
+
 
 void EditHCWMovData (run_params p, vector<pat>& pdat) {
 	//Adds a 12-hour window of uncertainty in the location of HCWs (not patients)

@@ -16,9 +16,14 @@ void ReadPatFromCSV(run_params p, vector<pat>& pdata);
 void RemovePunc(string& str);
 void SplitCommas(const string str, vector<string>& subs);
 void MakeDMY (const int j, const vector<string>& subs, char delim, vector<int>& dmy);
-int DatetoDay (const vector<int>& dmy);
+void MakeDMY (run_params& p, string file, const int j, const vector<string>& subs, char delim, vector<int>& dmy);
+void DateError (string file, string subsj, char delim);
+void YearOOR (string file, string subsj);
+void RemoveSpaces(string file, int i, int& pr, vector<string>& subs);
+int DatetoDay (vector<int>& dmy);
 //Genome sequence data input
 void ReadFastaAli (run_params p, vector<string>& names, vector<string>& seqs);
+void CheckBaseCase (vector<string>& seqs);
 void MatchSequencesToIndividuals (const run_params p, vector<pat>& pdat, vector<string>& names, vector<string>& seqs);
 void CorrectNames (vector<string>& names);
 void IncorporateSequenceData (vector<pat>& pdat, vector<string>& names, vector<string>& seqs);
@@ -32,7 +37,10 @@ void ReadLocationData (run_params p, vector<pat>& pdat);
 void EnforceUtopia (vector<pat>& pdat);
 void EnforceModerateUtopia (vector<pat>& pdat);
 void ReadHCWMovFromCSV(run_params p, vector<pat>& pdata);
+void ReadExtraHCWMovFromCSV(run_params& p, vector<pat>& pdat);
 void ReadWardMovFromCSV(run_params p, vector<pat>& pdata);
+void ReadWardMovBaysFromCSV(run_params& p, vector<pat>& pdata);
+void ReadWardMovFromCSVNew(run_params& p, vector<pat>& pdata);
 void RemoveIndividualsNoLocation (const run_params p, vector<pat>& pdat);
 void ReadSubsets (run_params p, vector< vector<int> >& subsets);
 

@@ -66,7 +66,8 @@ int main(int argc, const char **argv) {
     }
     
     //Main routine starts here
-	
+    cout << "Start main routine\n";
+    
 	//Flag to calculate thresholds for pairwise calculation
 	if (p.calc_thresholds==1) {
 		//Pre-calculate likelihoods: Speed up calculation
@@ -94,6 +95,7 @@ int main(int argc, const char **argv) {
     vector<string> names;
     vector<string> seqs;
     ReadFastaAli(p,names,seqs);
+    CheckBaseCase(seqs);
     //Match sequence data to records
     MatchSequencesToIndividuals(p,pdat,names,seqs);
 	cout << "Have complete data for " << pdat.size() << " individuals\n";
