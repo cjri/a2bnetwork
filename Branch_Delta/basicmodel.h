@@ -66,7 +66,9 @@ struct run_params {
     int delta; //Flag to use delta-based parameters
 	double hcw_gap; //Proportion of a day added to the end of each hcw
     double hcw_location_default; //Default probability of an HCW being in a given location
-    
+    int strict_locations; //Flag - allow only individuals for which location data is known
+    int include_HCW_U; //HCW location information includes U for unknown.  This flag includes those data as being present.  Can run with and without this to compare results.
+
     //1. Find transmission networks
     int specify_set;
     int specify_remove;

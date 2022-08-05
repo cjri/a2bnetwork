@@ -78,6 +78,8 @@ void GetOptions (run_params& p, int argc, const char **argv) {
     p.consistency=1;
     p.distance=1;
     p.absolute=0;
+    p.strict_locations=0;
+    p.include_HCW_U=0;
     p.delta=0;
 	int x=1;
 	while (x < argc && (argv[x][0]=='-')) {
@@ -142,6 +144,12 @@ void GetOptions (run_params& p, int argc, const char **argv) {
         } else if (p_switch.compare("--ward_format_old")==0) {
             x++;
             p.ward_format_old=atoi(argv[x]);
+        } else if (p_switch.compare("--strict_locations")==0) {
+            x++;
+            p.strict_locations=atoi(argv[x]);
+        } else if (p_switch.compare("--include_U")==0) {
+            x++;
+            p.include_HCW_U=atoi(argv[x]);
 		} else if (p_switch.compare("--sub_file")==0) {
 			x++;
 			p.sub_file=argv[x];
@@ -840,7 +848,7 @@ void EnforceModerateUtopia (vector<pat>& pdat) {
 }
 
 
-void ReadHCWMovFromCSV(run_params p, vector<pat>& pdat) {
+/*void ReadHCWMovFromCSV(run_params p, vector<pat>& pdat) {
 	ifstream csv_file;
 	csv_file.open(p.mov_file.c_str());
 	string str;
@@ -902,7 +910,66 @@ void ReadHCWMovFromCSV(run_params p, vector<pat>& pdat) {
 			}
 		}
 	}
+}*/
+
+void ReadHCWMovFromCSV(run_params& p, vector<pat>& pdat) {
+    ifstream csv_file;
+    csv_file.open(p.mov_file.c_str());
+    string str;
+    vector<int> dates;
+    int i=-1;
+    int spwarn=0;
+    while (getline(csv_file,str)) {
+        i++;
+        //Edit string to remove "
+        RemovePunc(str);
+        //Split at commas
+        vector<string> subs;
+        SplitCommas(str,subs);
+        RemoveSpaces(p.mov_file.c_str(),i,spwarn,subs);
+        if (i==0) {
+            //Date information
+            for (int j=2;j<subs.size();j++) {
+                vector<int> dmy;
+                MakeDMY(p,p.mov_file.c_str(),j,subs,p.mov_delim,dmy);
+                int day=DatetoDay(dmy);
+                //cout << subs[j] << " " << day << "\n";
+                dates.push_back(day);
+            }
+            cout << "Number of dates " << dates.size() << "\n";
+        } else {
+            //Put information into pdat location information
+            string pat=subs[0];
+            string w=subs[1];
+            int index=-1;
+            for (int j=0;j<pdat.size();j++) {
+                if (pdat[j].code==pat) {
+                    index=j;
+                    break;
+                }
+            }
+            if (index!=-1) {
+                for (int j=2;j<subs.size();j++) {
+                    if (subs[j].compare(0,1,"Y")==0||subs[j].compare(0,1,"A")==0) { //A is ambiguous ward location
+                        loc l;
+                        l.ward=w;
+                        l.date=dates[j-2];
+                        l.prob=1;
+                        pdat[index].locat.push_back(l);
+                    }
+                    if (p.include_HCW_U==1&&subs[j].compare(0,1,"U")==0) { //Include unknown locations under flag condition
+                        loc l;
+                        l.ward=w;
+                        l.date=dates[j-2];
+                        l.prob=1;
+                        pdat[index].locat.push_back(l);
+                    }
+                }
+            }
+        }
+    }
 }
+
 
 void ReadExtraHCWMovFromCSV(run_params& p, vector<pat>& pdat) {
     //Wards in which HCWs are always located

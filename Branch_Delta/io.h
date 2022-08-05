@@ -36,7 +36,7 @@ void RepairSequence(int i, int j, vector<pat>& pdat);
 void ReadLocationData (run_params p, vector<pat>& pdat);
 void EnforceUtopia (vector<pat>& pdat);
 void EnforceModerateUtopia (vector<pat>& pdat);
-void ReadHCWMovFromCSV(run_params p, vector<pat>& pdata);
+void ReadHCWMovFromCSV(run_params& p, vector<pat>& pdat);
 void ReadExtraHCWMovFromCSV(run_params& p, vector<pat>& pdat);
 void ReadWardMovFromCSV(run_params p, vector<pat>& pdata);
 void ReadWardMovBaysFromCSV(run_params& p, vector<pat>& pdata);

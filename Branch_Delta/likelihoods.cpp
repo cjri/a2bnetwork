@@ -46,11 +46,13 @@ void CalculateTDLikelihoods (run_params p, const vector<pat>& pdat, const vector
 						}
 					}
 				}
-				/*cout << "Number of positive contacts " << contact_times_probs.size() << "\n";
-                for (int k=0;k<contact_times_probs.size();k++) {
-                    cout << k << " " << contact_times_probs[k].time << " " << contact_times_probs[k].weight << "\n";
+                /*if (i==0&&j==1) {
+                    cout << "Number of positive contacts " << contact_times_probs.size() << "\n";
+                    for (int k=0;k<contact_times_probs.size();k++) {
+                        cout << k << " " << contact_times_probs[k].time << " " << contact_times_probs[k].weight << "\n";
+                    }
                 }*/
-                
+
                 
 				if (contact_times_probs.size()==0) {
 					lij.lL_tot=-1e10;
@@ -75,6 +77,9 @@ void CalculateTDLikelihoods (run_params p, const vector<pat>& pdat, const vector
                         } else {
                             lij.contact_likes.push_back(-1e10);
                         }
+                        /*if (i==0&&j==1) {
+                            cout << k << " " << lL << " " << lij.lL_tot << "\n";
+                        }*/
 						lij.contact_times.push_back(contact_times_probs[k].time);
 						lij.contact_likes.push_back(lL);
 						double lLnoseq=NoSeqLikelihoodFromItoJTimeK (i,j,k,p,contact_times_probs,pdat);
