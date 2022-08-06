@@ -126,6 +126,10 @@ void FPTN_Set (run_params& p, int set, const vector< vector<int> >& new_subsets,
             break;
         } else {
             remove++;
+            if (remove==10) {
+                cout << "Error: Too many removes\n";
+                found_complete=1;
+            }
         }
     }
 }
@@ -263,6 +267,109 @@ void ConstructIndivSets (const int remove, const vector<int>& indivs, vector< ve
             }
         }
     }
+    if (remove==7) {
+        for (int a1=0;a1<indivs.size()-4;a1++) {
+            for (int a2=a1+1;a2<indivs.size()-3;a2++) {
+                for (int a3=a2+1;a3<indivs.size()-2;a3++) {
+                    for (int a4=a3+1;a4<indivs.size()-1;a4++) {
+                        for (int a5=a4+1;a5<indivs.size();a5++) {
+                            for (int a6=a5+1;a6<indivs.size();a6++) {
+                                for (int a7=a6+1;a7<indivs.size();a7++) {
+                                    vector<int> ind_set;
+                                    vector<int> rem;
+                                    rem.push_back(a1);
+                                    rem.push_back(a2);
+                                    rem.push_back(a3);
+                                    rem.push_back(a4);
+                                    rem.push_back(a5);
+                                    rem.push_back(a6);
+                                    rem.push_back(a7);
+                                    for (int i=0;i<indivs.size();i++) {
+                                        if (i!=a1&&i!=a2&&i!=a3&&i!=a4&&i!=a5&&i!=a6&&i!=a7) {
+                                            ind_set.push_back(indivs[i]);
+                                        }
+                                    }
+                                    indiv_sets.push_back(ind_set);
+                                    remainders.push_back(rem);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (remove==8) {
+        for (int a1=0;a1<indivs.size()-4;a1++) {
+            for (int a2=a1+1;a2<indivs.size()-3;a2++) {
+                for (int a3=a2+1;a3<indivs.size()-2;a3++) {
+                    for (int a4=a3+1;a4<indivs.size()-1;a4++) {
+                        for (int a5=a4+1;a5<indivs.size();a5++) {
+                            for (int a6=a5+1;a6<indivs.size();a6++) {
+                                for (int a7=a6+1;a7<indivs.size();a7++) {
+                                    for (int a8=a7+1;a8<indivs.size();a8++) {
+                                        vector<int> ind_set;
+                                        vector<int> rem;
+                                        rem.push_back(a1);
+                                        rem.push_back(a2);
+                                        rem.push_back(a3);
+                                        rem.push_back(a4);
+                                        rem.push_back(a5);
+                                        rem.push_back(a6);
+                                        rem.push_back(a7);
+                                        for (int i=0;i<indivs.size();i++) {
+                                            if (i!=a1&&i!=a2&&i!=a3&&i!=a4&&i!=a5&&i!=a6&&i!=a7&&i!=a8) {
+                                                ind_set.push_back(indivs[i]);
+                                            }
+                                        }
+                                        indiv_sets.push_back(ind_set);
+                                        remainders.push_back(rem);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (remove==9) {
+        for (int a1=0;a1<indivs.size()-4;a1++) {
+            for (int a2=a1+1;a2<indivs.size()-3;a2++) {
+                for (int a3=a2+1;a3<indivs.size()-2;a3++) {
+                    for (int a4=a3+1;a4<indivs.size()-1;a4++) {
+                        for (int a5=a4+1;a5<indivs.size();a5++) {
+                            for (int a6=a5+1;a6<indivs.size();a6++) {
+                                for (int a7=a6+1;a7<indivs.size();a7++) {
+                                    for (int a8=a7+1;a8<indivs.size();a8++) {
+                                        for (int a9=a8+1;a9<indivs.size();a9++) {
+                                            vector<int> ind_set;
+                                            vector<int> rem;
+                                            rem.push_back(a1);
+                                            rem.push_back(a2);
+                                            rem.push_back(a3);
+                                            rem.push_back(a4);
+                                            rem.push_back(a5);
+                                            rem.push_back(a6);
+                                            rem.push_back(a7);
+                                            for (int i=0;i<indivs.size();i++) {
+                                                if (i!=a1&&i!=a2&&i!=a3&&i!=a4&&i!=a5&&i!=a6&&i!=a7&&i!=a8&&i!=a9) {
+                                                    ind_set.push_back(indivs[i]);
+                                                }
+                                            }
+                                            indiv_sets.push_back(ind_set);
+                                            remainders.push_back(rem);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 }
 
 void SetupParamsSubsetAnalysis (int set, const vector<int>& new_subset, const vector< vector<pat> >& pdat_sets, const vector< vector< vector<ijlike> > >& like_trans_sets, const vector< vector<sparseseq> >& variants_sets, vector<pat>& new_pdat, vector< vector<ijlike> >& new_like_trans, vector<sparseseq>& new_variants) {
